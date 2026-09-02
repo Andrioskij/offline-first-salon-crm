@@ -1,0 +1,2467 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>Salon CRM — Demo</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Salon CRM">
+<meta name="theme-color" content="#0E0B0D">
+
+<style>
+:root{
+  --bg:#0E0B0D;
+  --bg-nav:rgba(18,14,17,0.84);
+  --card:#1B171A;
+  --card-2:#241F23;
+  --card-3:#2C2529;
+  --sep:rgba(255,255,255,0.10);
+  --text:#F5F0F2;
+  --text-2:#9B9096;
+  --text-3:#6B6167;
+  --accent:#D24C93;
+  --accent-2:#F0A9CE;
+  --accent-soft:rgba(210,76,147,0.15);
+  --green:#32D74B;
+  --red:#FF453A;
+  --r:14px;
+  --ease:cubic-bezier(0.32,0.72,0,1);
+  --st:env(safe-area-inset-top,0px);
+  --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  margin:0;padding:0;height:100%;overflow:hidden;
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;
+  overscroll-behavior:none;
+  font-size:17px;line-height:1.4;
+}
+button{font-family:inherit;font-size:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;}
+input,select,textarea{font-family:inherit;font-size:16px;}
+/* Testi di esempio in corsivo: si distinguono subito da quelli gia' scritti. */
+::placeholder{font-style:italic;opacity:1;}
+::-webkit-input-placeholder{font-style:italic;}
+input::placeholder,textarea::placeholder{font-style:italic;color:var(--text-3);}
+.sel{-webkit-user-select:text;user-select:text;}
+
+/* height:100% e' la riserva per i browser vecchi; 100dvh usa l'altezza VERA della
+   finestra, che su iOS cambia quando la barra di Safari compare o scompare.
+   Senza dvh, prima dell'installazione la barra puo' coprire la tab bar. */
+#app{
+  height:100%;
+  height:100dvh;
+  max-width:720px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg);
+}
+
+/* ---------- Nav bar ---------- */
+#navbar{
+  position:relative;z-index:20;flex-shrink:0;padding-top:var(--st);
+  background:var(--bg-nav);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  transition:box-shadow .2s;
+}
+#navbar.scrolled{box-shadow:0 0.33px 0 var(--sep);}
+.nav-row{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 6px;}
+.nav-mini{
+  position:absolute;left:0;right:0;text-align:center;font-size:17px;font-weight:600;
+  letter-spacing:-0.02em;opacity:0;transform:translateY(5px);
+  transition:opacity .18s,transform .18s;pointer-events:none;
+}
+#navbar.scrolled .nav-mini{opacity:1;transform:none;}
+.nb{display:flex;align-items:center;color:var(--accent-2);font-size:17px;padding:7px 10px;position:relative;z-index:2;}
+.nb:active{opacity:.4;}
+.nb.b{font-weight:600;}
+.nb-sp{width:42px;}
+/* clamp(minimo, valore che scala, massimo): il titolo si adatta alla larghezza
+   senza mai diventare illeggibile su schermi stretti ne' sproporzionato su quelli larghi. */
+.lt{padding:2px 18px 12px;font-size:clamp(25px,7.4vw,33px);font-weight:700;letter-spacing:-0.03em;line-height:1.12;}
+.lt .s{display:block;font-size:13px;font-weight:400;color:var(--text-2);letter-spacing:0;margin-top:4px;}
+/* Marchio: banda a piena larghezza. width:100% + height:auto preserva il rapporto
+   originale (2.969:1) e il PNG a 1440px resta nitido anche su schermi retina. */
+.brand{padding:2px 16px 8px;}
+.brand img{
+  width:100%;height:auto;display:block;
+  /* Su telefono la banda occupa tutta la larghezza (circa 120px di altezza).
+     Su schermi larghi il limite evita un marchio sproporzionato: object-fit:contain
+     rimpicciolisce senza mai deformare il rapporto originale. */
+  /* Il limite tiene conto anche dell'altezza dello schermo: in orizzontale
+     lo spazio verticale crolla e il marchio non deve mangiarsi la pagina. */
+  max-height:150px;
+  max-height:min(150px,17vh);
+  object-fit:contain;object-position:center;
+}
+
+/* ---------- Scroller ---------- */
+#sc{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding-bottom:28px;}
+#ptr{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:height .2s var(--ease);}
+#ptr i{width:19px;height:19px;border-radius:50%;border:2px solid var(--sep);border-top-color:var(--accent);display:block;}
+#ptr.on i{animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ---------- Demo badge (solo build dimostrativa) ---------- */
+#demo-pill{
+  position:fixed;right:10px;
+  bottom:calc(58px + var(--sb, 0px) + 1px);
+  z-index:60;display:flex;align-items:center;gap:8px;
+  padding:4px 6px 4px 10px;border-radius:999px;opacity:.92;
+  background:rgba(210,76,147,0.16);border:0.5px solid rgba(210,76,147,0.55);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  font-size:11px;font-weight:600;letter-spacing:.02em;color:#F0C4DC;
+  white-space:nowrap;pointer-events:auto;
+}
+body.demo #sc{padding-bottom:76px;}
+#demo-pill button{
+  width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,0.14);border:none;border-radius:50%;
+  padding:0;font:inherit;font-size:12px;line-height:1;color:#fff;cursor:pointer;
+}
+#demo-pill button:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+#demo-intro{
+  position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(6,4,6,0.82);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+#demo-intro .box{
+  max-width:340px;background:#171215;border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:18px;padding:22px 20px;text-align:left;
+}
+#demo-intro h2{margin:0 0 10px;font-size:17px;font-weight:700;color:#fff;}
+#demo-intro p{margin:0 0 10px;font-size:13.5px;line-height:1.5;color:#C9BFC5;}
+#demo-intro .go{
+  margin-top:6px;width:100%;padding:11px;border:none;border-radius:12px;
+  background:#D24C93;color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+}
+@media (prefers-reduced-motion:no-preference){
+  #demo-intro{animation:demofade .25s ease}
+}
+@keyframes demofade{from{opacity:0}to{opacity:1}}
+
+/* ---------- Tab bar ---------- */
+#tabs{
+  flex-shrink:0;z-index:30;display:flex;padding-bottom:var(--sb);
+  background:var(--bg-nav);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  box-shadow:0 -0.33px 0 var(--sep);
+}
+.tb{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:6px 2px 5px;color:var(--text-3);font-size:10px;font-weight:500;
+}
+.tb svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+.tb.on{color:var(--accent);}
+.tb:active{opacity:.55;}
+
+/* ---------- Liste ---------- */
+.g{margin:20px 16px 0;}
+.g:first-child{margin-top:10px;}
+.gt{font-size:12.5px;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:0 4px 8px;}
+.gf{font-size:13px;color:var(--text-2);margin:8px 4px 0;line-height:1.45;}
+.list{background:var(--card);border-radius:var(--r);overflow:hidden;}
+
+/* Riga: contenitore + interno. Il rosso del pulsante "Elimina" resta nascosto sotto
+   l'interno, che copre il 100% della larghezza e porta lui il padding.
+   Cosi' non spunta piu' nessuna cornice colorata attorno alle righe. */
+.row{position:relative;}
+.row.sw{overflow:hidden;background:var(--card);}
+.row-in{
+  position:relative;z-index:2;background:var(--card);
+  display:flex;align-items:center;gap:12px;
+  padding:13px 15px;min-height:54px;
+  transition:transform .28s var(--ease);will-change:transform;
+}
+.row + .row .row-in::before{
+  content:'';position:absolute;left:15px;right:0;top:0;height:1px;
+  background:var(--sep);transform:scaleY(.5);transform-origin:top;
+}
+.row.op .row-in{transform:translateX(-88px);}
+.row-del{
+  position:absolute;top:0;right:0;bottom:0;width:88px;z-index:1;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:15px;font-weight:600;background:var(--red);
+  opacity:0;transition:opacity .12s;pointer-events:none;
+}
+.row.op .row-del,.row.sliding .row-del{opacity:1;pointer-events:auto;}
+.row-in.tap:active{background:var(--card-2);}
+.rm{flex:1;min-width:0;}
+.rt{font-size:17px;letter-spacing:-0.02em;}
+.rs{font-size:13.5px;color:var(--text-2);margin-top:2px;}
+.rv{font-size:16px;color:var(--text-2);white-space:nowrap;}
+.ch{width:8px;height:14px;flex-shrink:0;opacity:.3;stroke:var(--text);fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+.acc .rt{color:var(--accent-2);}
+.dg .rt{color:var(--red);}
+.ctr{justify-content:center;}
+.col{flex-direction:column;align-items:flex-start;}
+
+/* ---------- Statistiche ---------- */
+.stats{display:flex;gap:9px;margin:10px 16px 0;}
+.stx{flex:1;background:var(--card);border-radius:var(--r);padding:13px 10px;text-align:center;}
+.stx b{display:block;font-size:clamp(20px,5.6vw,25px);font-weight:700;letter-spacing:-0.03em;}
+.stx b.a{color:var(--accent-2);}
+.stx i{display:block;font-size:11px;color:var(--text-2);font-style:normal;margin-top:2px;line-height:1.25;}
+
+/* ---------- Calendario ---------- */
+.cal{background:var(--card);border-radius:var(--r);padding:6px 8px 10px;margin:10px 16px 0;}
+.cal-h{display:flex;align-items:center;justify-content:space-between;padding:6px 6px 8px;}
+.cal-m{font-size:clamp(15px,4.2vw,17px);font-weight:600;letter-spacing:-0.02em;text-transform:capitalize;}
+.cal-nav{display:flex;align-items:center;gap:2px;}
+.cal-nav button{min-width:36px;height:34px;display:flex;align-items:center;justify-content:center;color:var(--accent-2);}
+.cal-nav button:active{opacity:.4;}
+.cal-nav svg{width:9px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+.dow span{text-align:center;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);}
+.d{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:50%;}
+.d span{font-size:16.5px;letter-spacing:-0.02em;}
+.d.today span{color:var(--accent-2);font-weight:700;}
+.d.pick{background:var(--accent);}
+.d.pick span{color:#fff;font-weight:600;}
+.d i{width:5px;height:5px;border-radius:50%;background:var(--accent-2);display:block;}
+.d.pick i{background:#fff;}
+.d.empty{visibility:hidden;}
+
+/* ---------- Ricerca ---------- */
+.sw-box{padding:8px 16px 0;}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:11px;padding:9px 12px;}
+.search svg{width:16px;height:16px;stroke:var(--text-2);fill:none;stroke-width:2.2;flex-shrink:0;}
+.search input{flex:1;background:none;border:none;outline:none;color:var(--text);-webkit-user-select:text;user-select:text;}
+.search input::placeholder{color:var(--text-3);font-style:italic;}
+
+/* ---------- Stato vuoto ---------- */
+.mt{text-align:center;color:var(--text-2);font-size:15px;padding:40px 34px;line-height:1.5;}
+.mt b{display:block;font-size:34px;margin-bottom:10px;opacity:.4;font-weight:400;}
+
+/* ---------- Bottoni ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:12px 18px;border-radius:12px;font-size:17px;font-weight:600;letter-spacing:-0.02em;
+  background:var(--card-2);color:var(--text);min-height:48px;
+}
+.btn:active{opacity:.55;}
+.btn.p{background:var(--accent);color:#fff;}
+.btn.s{padding:9px 15px;min-height:40px;font-size:15px;border-radius:10px;}
+.btn.w{display:flex;width:100%;}
+
+/* ---------- Profilo ---------- */
+.pf{text-align:center;padding:4px 20px 2px;}
+.av{
+  width:72px;height:72px;border-radius:50%;margin:0 auto 10px;
+  background:linear-gradient(145deg,var(--accent),#89306F);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:600;color:#fff;letter-spacing:-0.02em;
+}
+.pf .n{font-size:clamp(20px,5.6vw,23px);font-weight:700;letter-spacing:-0.03em;}
+.pf .m{font-size:14px;color:var(--text-2);margin-top:3px;}
+
+/* ---------- Grafico ---------- */
+.chart{background:var(--card);border-radius:var(--r);padding:16px 14px 10px;margin:10px 16px 0;}
+.chart svg{width:100%;height:145px;display:block;}
+.chart .lbl{display:grid;margin-top:7px;}
+.chart .lbl span{text-align:center;font-size:10.5px;color:var(--text-3);}
+
+/* Riquadro del codice QR: fondo bianco perche' gli scanner richiedono
+   moduli scuri su chiaro, indipendentemente dal tema dell'app. */
+.qr{background:var(--card);border-radius:var(--r);padding:18px 16px;text-align:center;}
+.qr img{width:190px;height:190px;display:block;margin:0 auto;background:#fff;border-radius:10px;padding:9px;}
+.qr .u{font-size:13.5px;color:var(--accent-2);margin-top:11px;word-break:break-all;-webkit-user-select:text;user-select:text;}
+
+/* ---------- Blocco note ---------- */
+.pad{
+  width:100%;background:var(--card);border:none;border-radius:var(--r);color:var(--text);
+  padding:15px;min-height:170px;resize:none;outline:none;line-height:1.5;font-size:16px;
+  -webkit-user-select:text;user-select:text;
+}
+
+/* ---------- Bottom sheet ---------- */
+#sh{position:fixed;inset:0;z-index:100;pointer-events:none;}
+.bd{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;transition:opacity .3s var(--ease);}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;max-width:720px;margin:0 auto;
+  background:var(--bg);border-radius:15px 15px 0 0;max-height:93%;
+  display:flex;flex-direction:column;transform:translateY(100%);
+  transition:transform .4s var(--ease);padding-bottom:var(--sb);
+  box-shadow:0 -6px 36px rgba(0,0,0,.55);
+}
+#sh.on{pointer-events:auto;}
+#sh.on .bd{opacity:1;}
+#sh.on .sheet{transform:none;}
+.gb{width:36px;height:5px;border-radius:3px;background:rgba(255,255,255,.2);margin:8px auto 0;flex-shrink:0;}
+.sh-h{display:flex;align-items:center;justify-content:space-between;padding:8px 8px 10px;flex-shrink:0;}
+.sh-t{font-size:17px;font-weight:600;letter-spacing:-0.02em;}
+.sh-b{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 22px;}
+
+.f{margin-bottom:15px;}
+.f label{display:block;font-size:13px;color:var(--text-2);margin-bottom:6px;font-weight:500;}
+.f input,.f select,.f textarea{
+  width:100%;background:var(--card);border:none;color:var(--text);
+  padding:13px;border-radius:11px;outline:none;
+  -webkit-user-select:text;user-select:text;-webkit-appearance:none;appearance:none;
+}
+.f select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' stroke='%239B9096' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;background-size:12px;padding-right:36px;
+}
+.f textarea{min-height:100px;resize:none;line-height:1.5;}
+.f input:focus,.f select:focus,.f textarea:focus{box-shadow:0 0 0 2px var(--accent-soft);}
+.fr{display:flex;gap:10px;}
+.fr .f{flex:1;}
+
+/* ---------- Tabella della giornata ----------
+   Ogni impegno e' un blocco a se', tinto del colore dell'operatore e con il bordo
+   sinistro pieno: e' la soluzione delle agende professionali, dove il colore si
+   legge a distanza. Il nome dello staff accompagna sempre il colore, cosi'
+   l'informazione resta chiara anche a chi distingue male le tinte. */
+.tbl-list{display:flex;flex-direction:column;gap:8px;}
+.tbl-list .row{border-radius:14px;overflow:hidden;}
+.tbl-list .row-in::before{display:none;}
+/* Avatar dell'operatore: cerchio pieno con le iniziali. E' il modo in cui le
+   piattaforme del settore rendono riconoscibile chi lavora, senza filetti. */
+.tr-av{
+  width:34px;height:34px;border-radius:50%;margin:0 auto 4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13.5px;font-weight:700;letter-spacing:-0.02em;
+}
+.tr-who{display:flex;flex-direction:column;align-items:center;min-width:0;}
+.tr-nome{
+  font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.015em;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;
+}
+.tbl-h{
+  display:grid;grid-template-columns:48px 1fr 76px;gap:10px;
+  padding:6px 15px 7px;font-size:10.5px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.07em;
+}
+
+/* flex:1 e min-width:0 tengono la griglia larga quanto la riga: senza,
+   le colonne si adattavano al testo e il nome dello staff ballava. */
+.tr-in{display:grid;grid-template-columns:48px 1fr 76px;gap:10px;align-items:start;flex:1;min-width:0;}
+.tr-ora{
+  font-size:14.5px;font-weight:600;font-variant-numeric:tabular-nums;
+  color:var(--text);padding-top:1px;
+}
+.tr-ora.non{color:var(--text-3);font-weight:400;}
+.tr-txt{font-size:15px;line-height:1.35;white-space:pre-wrap;min-width:0;}
+.tr-sub{font-size:12px;color:var(--text-2);margin-top:2px;line-height:1.35;}
+.tr-op{
+  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  text-align:right;padding-top:3px;overflow:hidden;text-overflow:ellipsis;
+  min-width:0;white-space:nowrap;
+}
+.tr-op.non{color:var(--text-3);font-weight:500;}
+.tr-hist{color:var(--text-2);text-decoration:underline;text-underline-offset:2px;}
+.row-in.tr{padding:12px 13px;min-height:0;}
+
+/* Riepilogo colori della giornata */
+.leg{display:flex;flex-wrap:wrap;gap:16px;margin:0 4px 12px;}
+.leg-i{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);}
+.leg-i em{width:12px;height:12px;border-radius:3px;display:block;flex-shrink:0;}
+.leg-i b{font-weight:600;color:var(--text);font-style:normal;}
+
+/* ---------- Palette colori ---------- */
+.pal{background:var(--card);border-radius:11px;padding:11px;}
+/* La griglia si adatta al numero di colori della riga: una riga ne ha uno in piu'
+   perche' include il magenta del marchio. */
+.pal-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;}
+.pal-c{flex:1 1 0;min-width:0;}
+.pal-row:last-child{margin-bottom:0;}
+.pal-row:last-child .pal-c{flex:0 0 calc((100% - 35px)/8);}
+.pal-c{aspect-ratio:1;border-radius:50%;position:relative;}
+.pal-c.on::after{
+  content:'';position:absolute;inset:-3px;border-radius:50%;
+  box-shadow:0 0 0 2.5px var(--text);
+}
+.pal-name{
+  margin-top:12px;padding-top:11px;border-top:1px solid var(--sep);
+  font-size:14.5px;font-weight:600;text-align:center;letter-spacing:-0.01em;
+}
+.dot-st{width:15px;height:15px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.2);}
+
+/* ---------- Scelta rapida operatore ---------- */
+.ops{display:flex;flex-wrap:wrap;gap:8px;}
+.op-c{
+  display:flex;align-items:center;gap:7px;padding:9px 13px;border-radius:11px;
+  background:var(--card);font-size:15px;
+}
+.op-c.on{box-shadow:0 0 0 2px var(--accent);}
+.op-c:active{opacity:.6;}
+
+/* ---------- Stampa ----------
+   In stampa si nasconde l'app e resta solo la tabella su fondo bianco,
+   con i colori dell'operatore ridotti a barra laterale per non sprecare inchiostro. */
+#printable{display:none;}
+@media print{
+  html,body{height:auto;overflow:visible;background:#fff;color:#000;}
+  #app,#tabs,#sh,#ts{display:none !important;}
+  #printable{display:block !important;padding:0;}
+  .pr-h{border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px;}
+  .pr-h h1{font-size:19pt;margin:0 0 4px;}
+  /* Nome dedicato: la classe .d appartiene ai giorni del calendario, che sono
+     quadrati per costruzione, e in stampa creava un vuoto di 800px. */
+  .pr-d{font-size:12.5pt;color:#333;margin:0;text-transform:capitalize;}
+  .pr-leg{margin:10px 0 0;font-size:9.5pt;color:#333;}
+  .pr-leg span{margin-right:14px;white-space:nowrap;}
+  .pr-t{width:100%;border-collapse:collapse;}
+  .pr-t th{
+    text-align:left;font-size:9pt;text-transform:uppercase;letter-spacing:.06em;
+    border-bottom:1px solid #000;padding:6px 8px;
+  }
+  .pr-t td{padding:9px 8px;border-bottom:1px solid #CCC;font-size:11pt;vertical-align:top;}
+  .pr-t td.ora{white-space:nowrap;font-weight:700;width:60px;}
+  .pr-t td.op{white-space:nowrap;width:110px;}
+  .pr-bar{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px;vertical-align:-1px;border:1px solid #999;}
+  .pr-f{margin-top:20px;font-size:8.5pt;color:#666;border-top:1px solid #CCC;padding-top:8px;}
+  /* Ogni giornata parte da una pagina nuova, tranne la prima */
+  .pr-day{break-before:page;page-break-before:always;}
+  .pr-day:first-child{break-before:auto;page-break-before:auto;}
+  tr{page-break-inside:avoid;}
+}
+
+/* ---------- Selettore cliente con ricerca ----------
+   Con centinaia di clienti il menu a tendina di sistema diventa impraticabile:
+   qui si digitano due lettere e si tocca il nome. */
+.pk-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border-radius:11px;padding:13px;}
+.pk-chip .nm{font-size:16px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pk-chip button{color:var(--accent-2);font-size:15px;flex-shrink:0;}
+.pk-chip button:active{opacity:.45;}
+.pk-list{margin-top:8px;background:var(--card);border-radius:11px;overflow:hidden;max-height:216px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.pk-it{padding:12px 13px;font-size:16px;position:relative;}
+.pk-it + .pk-it::before{content:'';position:absolute;left:13px;right:0;top:0;height:1px;background:var(--sep);transform:scaleY(.5);transform-origin:top;}
+.pk-it:active{background:var(--card-2);}
+.pk-it .sub{font-size:13px;color:var(--text-2);margin-top:1px;}
+.pk-none{padding:12px 13px;font-size:14.5px;color:var(--text-2);}
+.pk-hint{font-size:12.5px;color:var(--text-3);margin:7px 4px 0;}
+
+/* ---------- Toast ---------- */
+#ts{
+  position:fixed;left:50%;bottom:calc(76px + var(--sb));transform:translateX(-50%) translateY(12px);
+  background:rgba(48,42,46,.97);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);
+  color:var(--text);padding:12px 18px;border-radius:13px;font-size:15px;max-width:86%;
+  text-align:center;opacity:0;pointer-events:none;z-index:200;
+  transition:opacity .22s,transform .22s var(--ease);
+}
+#ts.on{opacity:1;transform:translateX(-50%);}
+
+/* ---------- Sync ---------- */
+.sy{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-2);padding:12px 20px 0;}
+.dt{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex-shrink:0;}
+.dt.ok{background:var(--green);}
+.dt.bs{background:#FF9F0A;animation:pl 1s infinite;}
+.dt.er{background:var(--red);}
+.dt.wait{background:#FF9F0A;}
+@keyframes pl{50%{opacity:.25;}}
+
+.scr{animation:in .32s var(--ease);}
+@keyframes in{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}
+.scr.rt{animation:fi .2s ease;}
+@keyframes fi{from{opacity:0;}to{opacity:1;}}
+
+/* Finestra stretta: iPad affiancato a un'altra app, oppure telefoni piccoli.
+   Le cinque voci in basso devono restare leggibili senza accavallarsi. */
+@media (max-width:400px){
+  .g{margin:16px 12px 0;}
+  .stats,.cal,.chart{margin-left:12px;margin-right:12px;}
+  .sw-box{padding-left:12px;padding-right:12px;}
+  .brand,.lt{padding-left:14px;padding-right:14px;}
+  .sy{padding-left:16px;}
+  .row-in{padding:12px 13px;gap:10px;}
+  .stx{padding:11px 6px;}
+  .stx i{font-size:10px;}
+  .tb{font-size:9px;letter-spacing:-0.02em;}
+  .tb svg{width:23px;height:23px;}
+  .tb span{max-width:100%;}
+}
+
+/* Finestra molto stretta (split-screen spinto): etichette essenziali */
+@media (max-width:330px){
+  .tb{font-size:8.5px;}
+  .tb svg{width:21px;height:21px;}
+  .cal .d span{font-size:14.5px;}
+  .qr img{width:150px;height:150px;}
+}
+
+/* Schermo basso (telefono in orizzontale): intestazione compatta,
+   altrimenti marchio e titolo non lascerebbero spazio al contenuto. */
+@media (max-height:560px){
+  .brand{padding:0 16px 4px;}
+  .brand img{max-height:52px;}
+  .lt{font-size:23px;padding:0 18px 8px;}
+  .lt .s{font-size:12px;margin-top:2px;}
+  .nav-row{height:38px;}
+  .tb{padding:4px 2px 3px;font-size:9.5px;}
+  .tb svg{width:22px;height:22px;}
+  .cal{padding:4px 8px 8px;}
+  .cal .d span{font-size:15px;}
+}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header id="navbar"></header>
+  <main id="sc"><div id="ptr"><i></i></div><div id="scr"></div></main>
+  <nav id="tabs"></nav>
+</div>
+<div id="sh"></div>
+<div id="ts"></div>
+
+<!-- Riempito al volo dalla funzione di stampa; invisibile a schermo -->
+<div id="printable"></div>
+
+<script>
+'use strict';
+var PX = 'saloncrm_';
+
+var state = {
+  clients:[], visits:[], services:[], comments:[], posts:[], staff:[],
+  notepad:{text:'', updatedAt:0},
+  tab:'agenda', stack:[],
+  calMonth:'', pickDate:'',
+  qClient:'', qVisit:''
+};
+
+var PALETTE = [[{"c": "#E39696", "n": "Rosso chiaro"},{"c": "#E3B796", "n": "Corallo chiaro"},{"c": "#E3D896", "n": "Ambra chiaro"},{"c": "#CDE396", "n": "Lime chiaro"},{"c": "#ACE396", "n": "Verde chiaro"},{"c": "#96E3A1", "n": "Smeraldo chiaro"},{"c": "#96E3C2", "n": "Acquamarina chiaro"},{"c": "#96E3E3", "n": "Turchese chiaro"},{"c": "#96C2E3", "n": "Azzurro chiaro"},{"c": "#96A1E3", "n": "Blu chiaro"},{"c": "#AC96E3", "n": "Indaco chiaro"},{"c": "#CD96E3", "n": "Viola chiaro"},{"c": "#E396D8", "n": "Magenta chiaro"},{"c": "#E396B7", "n": "Rosa chiaro"}],
+  [{"c": "#E15A5A", "n": "Rosso"},{"c": "#E1945A", "n": "Corallo"},{"c": "#E1CE5A", "n": "Ambra"},{"c": "#BBE15A", "n": "Lime"},{"c": "#81E15A", "n": "Verde"},{"c": "#5AE16D", "n": "Smeraldo"},{"c": "#5AE1A7", "n": "Acquamarina"},{"c": "#5AE1E1", "n": "Turchese"},{"c": "#5AA7E1", "n": "Azzurro"},{"c": "#5A6DE1", "n": "Blu"},{"c": "#815AE1", "n": "Indaco"},{"c": "#BB5AE1", "n": "Viola"},{"c": "#E15ACE", "n": "Magenta"},{"c": "#D24C93", "n": "Magenta"}, {"c": "#E15A94", "n": "Rosa"}],
+  [{"c": "#E21C1C", "n": "Rosso intenso"},{"c": "#E2711C", "n": "Corallo intenso"},{"c": "#E2C61C", "n": "Ambra intenso"},{"c": "#AAE21C", "n": "Lime intenso"},{"c": "#54E21C", "n": "Verde intenso"},{"c": "#1CE238", "n": "Smeraldo intenso"},{"c": "#1CE28D", "n": "Acquamarina intenso"},{"c": "#1CE2E2", "n": "Turchese intenso"},{"c": "#1C8DE2", "n": "Azzurro intenso"},{"c": "#1C38E2", "n": "Blu intenso"},{"c": "#541CE2", "n": "Indaco intenso"},{"c": "#AA1CE2", "n": "Viola intenso"},{"c": "#E21CC6", "n": "Magenta intenso"},{"c": "#E21C71", "n": "Rosa intenso"}],
+  [{"c": "#AF1C1C", "n": "Rosso scuro"},{"c": "#AF5B1C", "n": "Corallo scuro"},{"c": "#AF9A1C", "n": "Ambra scuro"},{"c": "#85AF1C", "n": "Lime scuro"},{"c": "#46AF1C", "n": "Verde scuro"},{"c": "#1CAF31", "n": "Smeraldo scuro"},{"c": "#1CAF70", "n": "Acquamarina scuro"},{"c": "#1CAFAF", "n": "Turchese scuro"},{"c": "#1C70AF", "n": "Azzurro scuro"},{"c": "#1C31AF", "n": "Blu scuro"},{"c": "#461CAF", "n": "Indaco scuro"},{"c": "#851CAF", "n": "Viola scuro"},{"c": "#AF1C9A", "n": "Magenta scuro"},{"c": "#AF1C5B", "n": "Rosa scuro"}],
+  [{"c": "#7B1D1D", "n": "Rosso profondo"},{"c": "#7B451D", "n": "Corallo profondo"},{"c": "#7B6E1D", "n": "Ambra profondo"},{"c": "#607B1D", "n": "Lime profondo"},{"c": "#387B1D", "n": "Verde profondo"},{"c": "#1D7B2A", "n": "Smeraldo profondo"},{"c": "#1D7B53", "n": "Acquamarina profondo"},{"c": "#1D7B7B", "n": "Turchese profondo"},{"c": "#1D537B", "n": "Azzurro profondo"},{"c": "#1D2A7B", "n": "Blu profondo"},{"c": "#381D7B", "n": "Indaco profondo"},{"c": "#601D7B", "n": "Viola profondo"},{"c": "#7B1D6E", "n": "Magenta profondo"},{"c": "#7B1D45", "n": "Rosa profondo"}],
+  [{"c": "#FFFFFF", "n": "Bianco"},{"c": "#DED8DB", "n": "Perla"},{"c": "#B8B0B5", "n": "Cenere"},{"c": "#8F868C", "n": "Tortora"},{"c": "#6B6268", "n": "Grigio"},{"c": "#4A4348", "n": "Ardesia"},{"c": "#2E282C", "n": "Antracite"},{"c": "#151214", "n": "Nero"}]];
+
+var DEFAULT_SERVICES = [
+  {id:'svc-taglio-donna', name:'Taglio Donna', duration:45, price:25, category:'Taglio'},
+  {id:'svc-taglio-uomo', name:'Taglio Uomo', duration:30, price:15, category:'Taglio'},
+  {id:'svc-taglio-bambino', name:'Taglio Bambino', duration:25, price:12, category:'Taglio'},
+  {id:'svc-piega', name:'Piega', duration:30, price:15, category:'Styling'},
+  {id:'svc-colore', name:'Colore', duration:90, price:45, category:'Colore'},
+  {id:'svc-perm-riccia', name:'Permanente riccia', duration:100, price:55, category:'Trattamento'},
+  {id:'svc-stiratura', name:'Stiratura / liscio', duration:110, price:60, category:'Trattamento'},
+  {id:'svc-trattamento', name:'Trattamento ristrutturante', duration:30, price:20, category:'Trattamento'},
+  {id:'svc-shampoo', name:'Shampoo e finish', duration:20, price:10, category:'Styling'},
+  {id:'svc-barba', name:'Barba', duration:20, price:10, category:'Uomo'}
+];
+
+var IC = {
+  agenda:'<rect x="3.2" y="4.8" width="17.6" height="16" rx="3"/><path d="M8 3v3.6M16 3v3.6M3.2 10h17.6"/>',
+  clients:'<path d="M16.4 20.4v-1.7a3.7 3.7 0 0 0-3.7-3.7H7a3.7 3.7 0 0 0-3.7 3.7v1.7"/><circle cx="9.85" cy="7.7" r="3.7"/><path d="M20.8 20.4v-1.7a3.7 3.7 0 0 0-2.8-3.6M15.4 4.1a3.7 3.7 0 0 1 0 7.2"/>',
+  dash:'<path d="M4 20V9.5M10 20V4.5M16 20v-7M22 20H2"/>',
+  visits:'<circle cx="12" cy="12" r="8.8"/><path d="M12 6.9V12l3.3 2"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.1 14.4a1.5 1.5 0 0 0 .3 1.7l.1.1a1.9 1.9 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.9 1.9 0 1 1-3.7 0v-.1a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.9 1.9 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.2a1.9 1.9 0 1 1 0-3.7h.1a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.9 1.9 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.2a1.9 1.9 0 1 1 3.7 0v.1a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.9 1.9 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.9 1.9 0 1 1 0 3.7h-.1a1.5 1.5 0 0 0-1.4.9z"/>'
+};
+
+var TABS = [
+  {id:'agenda', label:'Agenda', ic:'agenda'},
+  {id:'clients', label:'Clienti', ic:'clients'},
+  {id:'dash', label:'Dashboard', ic:'dash'},
+  {id:'visits', label:'Storico', ic:'visits'},
+  {id:'settings', label:'Impostazioni', ic:'settings'}
+];
+
+/* Identificativo univoco per ogni nuovo record (usato dalla fusione in sincronizzazione). */
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+/* Neutralizza i caratteri HTML: il testo digitato non puo' rompere la pagina. */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+/* ===== Archiviazione locale ===== */
+/* Legge una chiave dal salvataggio locale del dispositivo; se manca, restituisce il valore di ripiego. */
+function lk(k, d){ try{ var r = localStorage.getItem(PX+k); return r ? JSON.parse(r) : d; }catch(e){ return d; } }
+/* Scrive una chiave in locale e, se il cloud e' attivo, programma la sincronizzazione. */
+function sk(k, v){
+  try{
+    localStorage.setItem(PX+k, JSON.stringify(v));
+    if(['clients','visits','services','comments','posts','staff','notepad'].indexOf(k)>=0 && !syncing && cloudOn()){
+      segnaAttesa(true);
+      plan();
+    }
+    return true;
+  }catch(e){ toast('Memoria del dispositivo piena.'); return false; }
+}
+
+/* ===== Sync via Netlify Function ===== */
+var URL_SYNC = '/.netlify/functions/sync';
+var pw = null; try{ pw = localStorage.getItem(PX+'pw'); }catch(e){}
+var sSt = pw ? 'idle' : 'off';
+var sAt = parseInt(localStorage.getItem(PX+'sAt')||'0') || 0;
+var sTm = null, syncing = false;
+/* Segna che ci sono modifiche non ancora arrivate al cloud. Sopravvive alla
+   chiusura dell'app: se il telefono resta senza rete fino al giorno dopo,
+   l'app sa comunque di dover inviare. */
+var inAttesa = false;
+try{ inAttesa = localStorage.getItem(PX+'attesa')==='1'; }catch(e){}
+function segnaAttesa(v){
+  inAttesa = v;
+  try{ v ? localStorage.setItem(PX+'attesa','1') : localStorage.removeItem(PX+'attesa'); }catch(e){}
+}
+/* Vero quando il dispositivo dichiara di non avere rete. */
+function senzaRete(){ return typeof navigator!=='undefined' && navigator.onLine===false; }
+
+/* Vero se su questo dispositivo e' stato inserito il codice di accesso. */
+function cloudOn(){ return !!pw; }
+/* Unico canale verso la funzione server: invia azione e codice, traduce gli errori HTTP. */
+function api(action, extra){
+  // Su rete debole una richiesta puo' restare appesa senza mai rispondere:
+  // senza un limite di attesa la sincronizzazione resterebbe bloccata per sempre.
+  var stop = null, opt = {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(Object.assign({action:action, password:pw}, extra||{}))
+  };
+  if(typeof AbortController !== 'undefined'){
+    var ac = new AbortController();
+    opt.signal = ac.signal;
+    stop = setTimeout(function(){ ac.abort(); }, 20000);
+  }
+  var limite = new Promise(function(_, ko){
+    setTimeout(function(){ ko(new Error('timeout')); }, 21000);
+  });
+  return Promise.race([fetch(URL_SYNC, opt), limite]).then(function(r){
+    if(stop) clearTimeout(stop);
+    if(r.status===401) throw new Error('unauthorized');
+    if(r.status===409) throw new Error('shrink');
+    if(!r.ok) throw new Error('server '+r.status);
+    return r.json();
+  }, function(e){
+    if(stop) clearTimeout(stop);
+    throw e;
+  });
+}
+/* Fusione per singolo record: vince l'updatedAt piu' recente.
+   Le cancellazioni sono record con deleted:true, quindi si propagano come le modifiche. */
+/* Fusione per singolo record fra dati locali e remoti: vince la versione modificata piu' di recente. */
+function mg(a, b){
+  var m = {};
+  (b||[]).forEach(function(r){ if(r && r.id) m[r.id] = r; });
+  (a||[]).forEach(function(l){
+    if(!l || !l.id) return;
+    var r = m[l.id];
+    if(!r || (l.updatedAt||0) >= (r.updatedAt||0)) m[l.id] = l;
+  });
+  return Object.keys(m).map(function(k){ return m[k]; });
+}
+/* Prepara l'intero archivio nel formato che viaggia verso il server. */
+function pack(){
+  return {savedAt:new Date().toISOString(), clients:state.clients, visits:state.visits,
+          services:state.services, comments:state.comments, posts:state.posts,
+          staff:state.staff, notepad:state.notepad};
+}
+/* Salva in locale tutte le collezioni in un colpo solo. */
+function persistAll(){
+  sk('clients',state.clients); sk('visits',state.visits); sk('services',state.services);
+  sk('comments',state.comments); sk('posts',state.posts); sk('staff',state.staff);
+  sk('notepad',state.notepad);
+}
+/* Ciclo completo di sincronizzazione: leggi dal cloud, fondi, salva in locale, riscrivi sul cloud. */
+function syncNow(){
+  if(!cloudOn() || syncing) return Promise.resolve();
+  if(senzaRete()){ sSt='offline'; paintSync(); return Promise.resolve(); }
+  syncing = true; sSt='syncing'; paintSync();
+  return api('load').then(function(res){
+    var r = res.data;
+    if(r){
+      state.clients  = mg(state.clients,  r.clients);
+      state.visits   = mg(state.visits,   r.visits);
+      state.services = mg(state.services, r.services);
+      state.comments = mg(state.comments, r.comments);
+      state.posts    = mg(state.posts,    r.posts);
+      state.staff    = mg(state.staff,    r.staff);
+      if(r.notepad && (r.notepad.updatedAt||0) > (state.notepad.updatedAt||0)) state.notepad = r.notepad;
+    }
+    persistAll();
+    return api('save', {data:pack()});
+  }).then(function(){
+    sAt = Date.now(); localStorage.setItem(PX+'sAt', String(sAt));
+    segnaAttesa(false);
+    sSt='idle'; syncing=false; paintSync(); render();
+  }).catch(function(e){
+    syncing = false;
+    var m = String(e.message);
+    if(m==='unauthorized'){ dropCloud(); return; }
+    if(m==='shrink'){
+      if(confirm('Questo salvataggio ridurrebbe molto i dati sul cloud (può capitare se il dispositivo non era aggiornato).\n\nForzare il salvataggio? Annulla = mantieni i dati del cloud.')){
+        syncing = true;
+        return api('save',{data:pack(), force:true}).then(function(){
+          sAt=Date.now(); localStorage.setItem(PX+'sAt',String(sAt)); sSt='idle'; syncing=false; paintSync();
+        }).catch(function(){ sSt='error'; syncing=false; paintSync(); });
+      }
+      return api('load').then(function(b){
+        if(b.data){
+          state.clients=mg([],b.data.clients); state.visits=mg([],b.data.visits);
+          state.services=mg([],b.data.services); state.comments=mg([],b.data.comments);
+          state.posts=mg([],b.data.posts); state.staff=mg([],b.data.staff);
+          if(b.data.notepad) state.notepad=b.data.notepad;
+          persistAll();
+        }
+        sSt='idle'; paintSync(); render(); toast('Ripristinati i dati dal cloud.');
+      }).catch(function(){ sSt='error'; paintSync(); });
+    }
+    sSt = senzaRete() ? 'offline' : 'error';
+    paintSync();
+    // Rete assente o instabile: si riprova da soli, senza chiedere nulla all'utente
+    clearTimeout(sTm); sTm = setTimeout(syncNow, 15000);
+  });
+}
+/* Rimanda la sincronizzazione di 2,5 secondi: piu' modifiche ravvicinate fanno un solo invio. */
+function plan(){ clearTimeout(sTm); sTm = setTimeout(syncNow, 2500); }
+/* Scollega il dispositivo dal cloud dimenticando il codice (i dati locali restano). */
+function dropCloud(){ pw=null; try{ localStorage.removeItem(PX+'pw'); }catch(e){} sSt='off'; paintSync(); }
+setInterval(function(){ if(cloudOn()) syncNow(); }, 60000);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible' && cloudOn()) syncNow(); });
+window.addEventListener('online', function(){
+  if(!cloudOn()) return;
+  if(sSt==='offline'){ sSt='idle'; paintSync(); }
+  syncNow();
+});
+window.addEventListener('offline', function(){
+  if(cloudOn()){ sSt='offline'; paintSync(); }
+});
+
+/* Testo dello stato di sincronizzazione mostrato all'utente. */
+function syncTxt(){
+  if(sSt==='off') return 'Cloud non collegato';
+  if(sSt==='syncing') return 'Sincronizzazione…';
+  if(sSt==='offline') return inAttesa
+    ? 'Senza rete · modifiche salvate qui, verranno inviate da sole'
+    : 'Senza rete · i dati restano salvati qui';
+  if(sSt==='error') return 'Cloud non raggiungibile · riprovo da solo';
+  if(inAttesa) return 'Modifiche da inviare…';
+  return 'Sincronizzato' + (sAt ? ' · '+new Date(sAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '');
+}
+/* Classe del pallino colorato che accompagna lo stato di sincronizzazione. */
+function syncDot(){ return {off:'',syncing:'bs',offline:'wait',error:'er',idle:'ok'}[sSt] || ''; }
+/* Aggiorna stato e pallino ovunque compaiano, senza ridisegnare la schermata. */
+function paintSync(){
+  document.querySelectorAll('[data-sy]').forEach(function(e){ e.textContent = syncTxt(); });
+  document.querySelectorAll('[data-dt]').forEach(function(e){ e.className = 'dt '+syncDot(); });
+}
+
+/* ===== Date ===== */
+/* Converte una data nel formato AAAA-MM-GG rispettando il fuso locale. */
+function iso(d){ return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+/* Data di oggi in formato AAAA-MM-GG. */
+function today(){ return iso(new Date()); }
+/* Estrae anno-mese da una data (serve ai raggruppamenti mensili). */
+function ymOf(d){ return String(d||'').slice(0,7); }
+/* Data leggibile all'italiana: 5 mar 2026. */
+function fmtD(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}); }
+/* Giornata per esteso: lunedi' 5 marzo. */
+function fmtDay(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}); }
+/* Prima lettera maiuscola. */
+function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+/* Data e ora di un momento preciso: 5 mar - 14:30. */
+function fmtTs(t){
+  if(!t) return '';
+  var d = new Date(t);
+  return d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+/* Quanti giorni sono passati da una certa data. */
+function dSince(s){ if(!s) return null; return Math.round((new Date(today()+'T00:00:00') - new Date(s+'T00:00:00'))/86400000); }
+/* Iniziali del nome, per l'avatar della scheda cliente. */
+function ini(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'').toUpperCase()+((p[1]||'')[0]||'').toUpperCase(); }
+
+/* Clienti attivi (esclude quelli con cancellazione propagata). */
+function LC(){ return state.clients.filter(function(c){ return !c.deleted; }); }
+/* Visite attive. */
+function LV(){ return state.visits.filter(function(v){ return !v.deleted; }); }
+/* Servizi attivi del listino. */
+function LS(){ return state.services.filter(function(s){ return !s.deleted; }); }
+/* Appunti del diario attivi. */
+function LM(){ return state.comments.filter(function(m){ return !m.deleted; }); }
+/* Membri dello staff attivi, nell'ordine in cui sono stati creati. */
+function LT(){ return state.staff.filter(function(s){ return !s.deleted; }); }
+/* Trova un membro dello staff dal suo identificativo. */
+function stf(id){ return state.staff.filter(function(s){ return s.id===id && !s.deleted; })[0]; }
+/* Nome dell'operatore di una visita: dallo staff se collegato,
+   altrimenti dal vecchio campo di testo libero delle visite gia' registrate. */
+function opName(v){
+  var s = v.staffId ? stf(v.staffId) : null;
+  return s ? s.name : (v.stylist || '');
+}
+/* Etichetta " · Nome" da appendere alla data, vuota se non c'e' operatore. */
+function opLabel(v){
+  var n = opName(v);
+  return n ? ' · '+esc(n) : '';
+}
+
+/* Nome in italiano di un colore della palette: mai mostrare il codice esadecimale. */
+function colorName(hex){
+  var t = String(hex||'').toUpperCase(), out = '';
+  PALETTE.forEach(function(riga){
+    riga.forEach(function(x){ if(x.c.toUpperCase()===t) out = x.n; });
+  });
+  return out || 'Personalizzato';
+}
+
+/* Colore di un operatore; grigio neutro se l'appunto non ha operatore. */
+function stfColor(id){ var s = stf(id); return s ? s.color : '#6B6167'; }
+/* Schiarisce un colore quanto basta perche' resti visibile sul tema scuro:
+   un "Blu profondo" a filo del fondo nero sparirebbe all'occhio. */
+function lift(hex){
+  var c = String(hex||'').replace('#','');
+  if(c.length!==6) return '#999999';
+  var r=parseInt(c.slice(0,2),16)/255, g=parseInt(c.slice(2,4),16)/255, b=parseInt(c.slice(4,6),16)/255;
+  var mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2, s=0, hh=0, d=mx-mn;
+  if(d){
+    s = l>0.5 ? d/(2-mx-mn) : d/(mx+mn);
+    if(mx===r) hh=((g-b)/d+(g<b?6:0));
+    else if(mx===g) hh=(b-r)/d+2;
+    else hh=(r-g)/d+4;
+    hh/=6;
+  }
+  // 0.70 e la soglia sotto cui alcune tinte scure non raggiungerebbero
+  // il contrasto 4.5:1 richiesto per la leggibilita.
+  l = Math.max(l, 0.70); s = Math.max(s, 0.45);
+  var q = l<0.5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  function ch(t){
+    if(t<0) t+=1; if(t>1) t-=1;
+    if(t<1/6) return p+(q-p)*6*t;
+    if(t<1/2) return q;
+    if(t<2/3) return p+(q-p)*(2/3-t)*6;
+    return p;
+  }
+  var o=[ch(hh+1/3),ch(hh),ch(hh-1/3)].map(function(v){ return Math.round(v*255); });
+  return '#'+o.map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join('').toUpperCase();
+}
+
+/* Testo leggibile sopra un colore: bianco su tinte scure, nero su tinte chiare. */
+function readable(hex){
+  var c = String(hex||'').replace('#','');
+  if(c.length!==6) return '#fff';
+  var r=parseInt(c.slice(0,2),16), g=parseInt(c.slice(2,4),16), b=parseInt(c.slice(4,6),16);
+  return (0.299*r + 0.587*g + 0.114*b) > 150 ? '#1A1418' : '#FFFFFF';
+}
+/* Colore con trasparenza, per tingere appena lo sfondo di una riga. */
+function tint(hex, a){
+  var c = String(hex||'').replace('#','');
+  if(c.length!==6) return 'transparent';
+  return 'rgba('+parseInt(c.slice(0,2),16)+','+parseInt(c.slice(2,4),16)+','+parseInt(c.slice(4,6),16)+','+a+')';
+}
+
+/* Appunti dell'agenda attivi. */
+function LP(){ return state.posts.filter(function(p){ return !p.deleted; }); }
+/* Trova un cliente dal suo identificativo. */
+function cli(id){ return state.clients.filter(function(c){ return c.id===id && !c.deleted; })[0]; }
+/* Visite di un cliente, dalla piu' recente. */
+function visOf(id){ return LV().filter(function(v){ return v.clientId===id; }).sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); }); }
+/* Ultima visita di un cliente. */
+function lastVis(id){ return visOf(id)[0] || null; }
+/* Appunti di una data giornata, dal piu' recente. */
+/* Appunti di una giornata in ordine di orario: un appuntamento aggiunto dopo
+   si colloca da solo fra quelli gia' presenti. Chi non ha orario va in fondo. */
+function postsOn(d){
+  return LP().filter(function(p){ return p.date===d; }).sort(function(a,b){
+    var ta = a.time || '99:99', tb = b.time || '99:99';
+    if(ta !== tb) return ta.localeCompare(tb);
+    return (a.createdAt||0) - (b.createdAt||0);
+  });
+}
+
+/* Link esterni: in modalita' app conviene navigare direttamente,
+   altrimenti iOS apre una finestra vuota senza tasto indietro. */
+/* Vero quando l'app gira installata sulla schermata Home (senza barra del browser). */
+function standalone(){
+  return window.navigator.standalone === true ||
+         (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
+/* Apre un link esterno: installata naviga diretto, altrimenti nuova scheda. Evita la pagina bianca su iOS. */
+function ext(url){
+  if(standalone()){ window.location.href = url; return; }
+  var w = window.open(url,'_blank','noopener');
+  if(!w) window.location.href = url;
+}
+/* Avvia una chiamata normale aprendo il compositore del telefono.
+   Per i link tel: si naviga sempre diretto: window.open verrebbe bloccato
+   o lascerebbe una scheda vuota. */
+function callNumber(phone){
+  var n = String(phone||'').replace(/[^\d+]/g,'');
+  if(!n){ toast('Numero non disponibile.'); return; }
+  window.location.href = 'tel:'+n;
+}
+
+/* Compone il link WhatsApp ripulendo il numero da spazi e simboli. */
+function waUrl(phone, msg){
+  return 'https://wa.me/'+String(phone||'').replace(/[^\d+]/g,'')+(msg?('?text='+encodeURIComponent(msg)):'');
+}
+
+var tTm;
+/* Messaggio breve a scomparsa in fondo allo schermo. */
+function toast(m){
+  var t = document.getElementById('ts');
+  t.textContent = m; t.classList.add('on');
+  clearTimeout(tTm); tTm = setTimeout(function(){ t.classList.remove('on'); }, 2500);
+}
+
+/* ===== Navigazione ===== */
+/* Schermata attualmente visibile (in cima alla pila di navigazione). */
+function cur(){ return state.stack.length ? state.stack[state.stack.length-1] : {view:state.tab}; }
+/* Apre una sotto-schermata impilandola sopra l'attuale. */
+function push(v,id){ state.stack.push({view:v,id:id}); render(); document.getElementById('sc').scrollTop=0; }
+/* Torna alla schermata precedente. */
+function pop(){ state.stack.pop(); render(); }
+/* Cambia sezione dalla barra in basso; ritoccando la stessa si torna in cima. */
+function tab(t){
+  if(state.tab===t && !state.stack.length){ document.getElementById('sc').scrollTo({top:0,behavior:'smooth'}); return; }
+  state.tab=t; state.stack=[]; render(); document.getElementById('sc').scrollTop=0;
+}
+
+/* Ridisegna barra superiore, contenuto e barra inferiore in base allo stato. */
+function render(){
+  var s = cur(), def = SC[s.view];
+  if(!def){ state.stack=[]; state.tab='agenda'; def = SC.agenda; s = {view:'agenda'}; }
+  var ctx = def.data ? def.data(s.id) : null;
+  document.getElementById('navbar').innerHTML = navHtml(def, ctx);
+  var h = document.getElementById('scr');
+  h.className = 'scr' + (state.stack.length ? '' : ' rt');
+  h.innerHTML = def.body(ctx);
+  document.getElementById('tabs').innerHTML = TABS.map(function(t){
+    return '<button class="tb '+(state.tab===t.id?'on':'')+'" data-a="tab" data-id="'+t.id+'">'+
+      '<svg viewBox="0 0 24 24">'+IC[t.ic]+'</svg>'+t.label+'</button>';
+  }).join('');
+  paintSync(); onScroll();
+}
+/* Costruisce la barra superiore: indietro, titolo grande e compatto, marchio, pulsante di destra. */
+function navHtml(def, ctx){
+  var t = typeof def.title==='function' ? def.title(ctx) : def.title;
+  var r = def.right ? def.right(ctx) : '';
+  return '<div class="nav-row">'+
+    (state.stack.length
+      ? '<button class="nb" data-a="back"><svg class="ch" viewBox="0 0 8 14" style="opacity:1;stroke:var(--accent-2);margin-right:5px;transform:rotate(180deg)"><path d="M1 1l5.5 6L1 13"/></svg>Indietro</button>'
+      : '<span class="nb-sp"></span>')+
+    '<div class="nav-mini">'+esc(t)+'</div>'+
+    (r || '<span class="nb-sp"></span>')+
+  '</div>'+
+  (def.brand ? '<div class="brand"><img src="logo.png" alt="Salon CRM"></div>' : '')+
+  '<div class="lt">'+esc(t)+(def.sub ? '<span class="s">'+esc(def.sub(ctx))+'</span>' : '')+'</div>';
+}
+
+/* ===== Righe ===== */
+/* Riga con Elimina nascosto: si scopre scorrendo verso sinistra. */
+function rowSwipe(delAct, delId, inner, tapAttrs){
+  // Se chi chiama fornisce gia' un attributo class, non ne aggiungiamo un secondo
+  var attrs = tapAttrs || '';
+  var apertura = /class=/.test(attrs) ? '<div ' + attrs + '>' : '<div class="row-in tap" '+attrs+'>';
+  return '<div class="row sw" data-swipe>'+
+    '<div class="row-del" data-a="'+delAct+'" data-id="'+delId+'">Elimina</div>'+
+    apertura+inner+'</div></div>';
+}
+/* Riga semplice, eventualmente toccabile. */
+function rowPlain(inner, attrs, cls){
+  return '<div class="row"><div class="row-in '+(cls||'')+'" '+(attrs||'')+'>'+inner+'</div></div>';
+}
+var CHEV = '<svg class="ch" viewBox="0 0 8 14"><path d="M1 1l5.5 6L1 13"/></svg>';
+
+/* ===== Schermate ===== */
+var SC = {};
+
+/* ---- AGENDA ---- */
+/* Home: calendario del mese + scheda della giornata scelta con i suoi appunti. */
+SC.agenda = {
+  title:'Agenda', brand:true,
+  sub:function(){ return cap(fmtDay(today())); },
+  right:function(){ return '<button class="nb" data-a="new-post">Aggiungi</button>'; },
+  body:function(){
+    var ps = postsOn(state.pickDate);
+    var isT = state.pickDate === today();
+    return calHtml() +
+      '<div class="sy"><span class="dt '+syncDot()+'" data-dt></span><span data-sy>'+esc(syncTxt())+'</span></div>' +
+      '<div class="g"><div class="gt" data-dayswipe>'+(isT?'Oggi · ':'')+esc(cap(fmtDay(state.pickDate)))+
+        ' <span style="opacity:.5;text-transform:none;letter-spacing:0">\u2039 scorri \u203A</span></div>'+
+        '<div data-dayswipe>'+legendHtml(ps)+
+        (ps.length ? '<div class="tbl-h"><span>Orario</span><span>Tipo di lavoro</span><span style="text-align:center">Staff</span></div>' : '')+
+        '</div>'+
+        (ps.length ? '<div class="tbl-list">'+ps.map(postRow).join('')+'</div>' : '')+
+        '<div class="list" style="margin-top:'+(ps.length?'8px':'0')+'">'+
+          (ps.length ? '' : rowPlain('<div class="rm"><div class="rs">Nessun appuntamento per questa giornata.</div></div>'))+
+          rowPlain('<div class="rt">+ Aggiungi appuntamento</div>','data-a="new-post"','tap ctr acc')+
+        '</div>'+
+        (ps.length ? '<div class="g" style="margin:10px 0 0"><button class="btn w" data-a="print-day">Stampa agenda</button></div>' : '')+
+        '<div class="gf">Le righe sono ordinate per operatore e colorate con il suo colore. '+
+        (LT().length ? '' : 'Aggiungi lo staff dalle Impostazioni per assegnare gli impegni. ')+
+        'Ogni appuntamento resta datato con il giorno e l\u2019ora in cui l\u2019hai scritto.</div>'+
+      '</div>';
+  }
+};
+/* Griglia del mese: settimana da lunedi', pallino sui giorni con appunti, giorno scelto evidenziato. */
+function calHtml(){
+  var p = state.calMonth.split('-'), y = +p[0], m = +p[1];
+  var first = new Date(y, m-1, 1);
+  var lead = (first.getDay()+6)%7;
+  var dim = new Date(y, m, 0).getDate();
+  var label = first.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  var cells = '';
+  for(var i=0;i<lead;i++) cells += '<div class="d empty"></div>';
+  for(var d=1;d<=dim;d++){
+    var ds = y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var has = postsOn(ds).length;
+    var cl = 'd'+(ds===today()?' today':'')+(ds===state.pickDate?' pick':'');
+    cells += '<div class="'+cl+'" data-a="pick" data-id="'+ds+'"><span>'+d+'</span>'+(has?'<i></i>':'')+'</div>';
+  }
+  return '<div class="cal"><div class="cal-h"><div class="cal-m">'+esc(label)+'</div><div class="cal-nav">'+
+    '<button data-a="mprev"><svg viewBox="0 0 8 14" style="transform:rotate(180deg)"><path d="M1 1l5.5 6L1 13"/></svg></button>'+
+    '<button data-a="mtoday" style="padding:0 8px;font-size:15px;font-weight:600">Oggi</button>'+
+    '<button data-a="mnext"><svg viewBox="0 0 8 14"><path d="M1 1l5.5 6L1 13"/></svg></button>'+
+    '</div></div>'+
+    '<div class="dow"><span>lun</span><span>mar</span><span>mer</span><span>gio</span><span>ven</span><span>sab</span><span>dom</span></div>'+
+    '<div class="grid">'+cells+'</div></div>';
+}
+/* Riga di un appunto d'agenda: testo, cliente collegato, data di inserimento, numero di modifiche. */
+/* Riepilogo dei colori: chi lavora quel giorno e con quanti impegni.
+   Serve a leggere la tabella a colpo d'occhio senza ricordare i colori. */
+function legendHtml(ps){
+  var conta = {}, ordine = [];
+  ps.forEach(function(p){
+    if(!p.staffId) return;
+    if(conta[p.staffId]===undefined){ conta[p.staffId]=0; ordine.push(p.staffId); }
+    conta[p.staffId]++;
+  });
+  if(!ordine.length) return '';
+  return '<div class="leg">'+ordine.map(function(id){
+    var s = stf(id); if(!s) return '';
+    return '<span class="leg-i"><em style="background:'+lift(s.color)+'"></em>'+
+      '<b>'+esc(s.name)+'</b> '+conta[id]+'</span>';
+  }).join('')+'</div>';
+}
+
+/* Riga della tabella giornaliera: barra e sfondo col colore dell'operatore. */
+function postRow(p){
+  var c = p.clientId ? cli(p.clientId) : null;
+  var s = p.staffId ? stf(p.staffId) : null;
+  var col = s ? lift(s.color) : '#5E565B';
+  var nh = (p.history && p.history.length) ? p.history.length : 0;
+  // Velo del colore sopra un fondo pieno: il blocco si riconosce a distanza
+  // senza compromettere la leggibilita' del testo bianco.
+  var velo = tint(col, s?0.13:0.04);
+  var bordo = tint(col, s?0.34:0.10);
+  var stile = 'background:linear-gradient('+velo+','+velo+'), var(--card);box-shadow:inset 0 0 0 1px '+bordo+';';
+  return rowSwipe('del-post', p.id,
+    '<div class="tr-in">'+
+      '<div class="tr-ora'+(p.time?'':' non')+'">'+esc(p.time||'—')+'</div>'+
+      '<div>'+
+        '<div class="tr-txt">'+esc(p.text)+'</div>'+
+        (c ? '<div class="tr-sub" style="color:var(--text);opacity:.82">'+esc(c.name)+'</div>' : '')+
+        // Data di inserimento ed eventuali modifiche su una riga sola:
+        // se c'e' cronologia la riga stessa la apre, senza aggiungere un link.
+        (nh
+          ? '<div class="tr-sub tr-hist" data-a="post-hist" data-id="'+p.id+'">'+fmtTs(p.createdAt)+
+            ' · '+nh+(nh===1?' modifica':' modifiche')+' \u203A</div>'
+          : '<div class="tr-sub">'+fmtTs(p.createdAt)+'</div>')+
+      '</div>'+
+      (s
+        ? '<div class="tr-who">'+
+            '<div class="tr-av" style="background:'+col+';color:'+readable(col)+'">'+esc(ini(s.name))+'</div>'+
+            '<div class="tr-nome" style="color:'+col+'">'+esc(s.name)+'</div>'+
+          '</div>'
+        : '<div class="tr-who"><div class="tr-av" style="background:var(--card-3);color:var(--text-3)">–</div></div>')+
+    '</div>',
+    'data-a="edit-post" data-id="'+p.id+'" class="row-in tap tr" style="'+stile+'"');
+}
+
+/* ---- CLIENTI ---- */
+/* Elenco clienti con ricerca per nome o telefono. */
+SC.clients = {
+  title:'Clienti',
+  sub:function(){ return LC().length+' in archivio'; },
+  right:function(){ return '<button class="nb" data-a="new-client">Nuovo</button>'; },
+  body:function(){
+    var q = state.qClient.toLowerCase();
+    var l = LC().filter(function(c){ return String(c.name).toLowerCase().indexOf(q)>=0 || String(c.phone||'').indexOf(q)>=0; })
+                .sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'it'); });
+    return '<div class="sw-box"><div class="search">'+
+      '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'+
+      '<input id="q-cli" type="search" placeholder="Cerca nome o telefono" value="'+esc(state.qClient)+'"></div></div>'+
+      (l.length ? '<div class="g"><div class="list">'+l.map(cliRow).join('')+'</div></div>'
+        : '<div class="mt"><b>\uD83D\uDC64</b>'+(LC().length?'Nessun risultato.':'Nessun cliente ancora.')+
+          '<div style="margin-top:16px"><button class="btn p s" data-a="new-client">Aggiungi il primo cliente</button></div></div>');
+  }
+};
+/* Riga cliente: nome, ultimo servizio e giorni dall'ultima visita. */
+function cliRow(c){
+  var lv = lastVis(c.id), d = lv ? dSince(lv.date) : null;
+  return rowSwipe('del-client', c.id,
+    '<div class="rm"><div class="rt">'+esc(c.name)+'</div>'+
+    '<div class="rs">'+(lv?esc(lv.service):(c.phone?esc(c.phone):'nessuna visita'))+'</div></div>'+
+    (d!==null ? '<span class="rv">'+(d===0?'oggi':d+'g')+'</span>' : '')+CHEV,
+    'data-a="open-client" data-id="'+c.id+'"');
+}
+
+/* Scheda cliente: anagrafica, storico visite e diario appunti. */
+SC.client = {
+  title:function(c){ return c ? c.name : 'Scheda'; },
+  data:function(id){ return cli(id); },
+  right:function(c){ return c ? '<button class="nb" data-a="edit-client" data-id="'+c.id+'">Modifica</button>' : ''; },
+  body:function(c){
+    if(!c) return '<div class="mt">Scheda non trovata.</div>';
+    var vs = visOf(c.id);
+    var ns = LM().filter(function(m){ return m.clientId===c.id; }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    return '<div class="pf"><div class="av">'+esc(ini(c.name))+'</div>'+
+      '<div class="n">'+esc(c.name)+'</div>'+
+      '<div class="m">'+vs.length+' visite'+(c.phone?' · '+esc(c.phone):'')+'</div></div>'+
+      (c.phone ? '<div class="g" style="display:flex;gap:10px">'+
+        '<button class="btn p" style="flex:1" data-a="call" data-id="'+c.id+'">'+
+          '<svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round">'+
+          '<path d="M21.6 16.9v2.9a2 2 0 0 1-2.1 2 19.4 19.4 0 0 1-8.5-3 19.1 19.1 0 0 1-5.9-5.9 19.4 19.4 0 0 1-3-8.6A2 2 0 0 1 4 2.2h2.9a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L7.9 10a15.5 15.5 0 0 0 5.9 5.9l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'+
+          'Chiama</button>'+
+        '<button class="btn" style="flex:1" data-a="wa" data-id="'+c.id+'">WhatsApp</button>'+
+      '</div>' : '')+
+
+      '<div class="g"><div class="gt">Dati</div><div class="list">'+
+        (c.phone
+          ? rowPlain('<div class="rm"><div class="rs">Telefono</div><div class="rt sel">'+esc(c.phone)+'</div></div>'+
+              '<span class="rv" style="color:var(--accent-2)">Chiama</span>','data-a="call" data-id="'+c.id+'"','tap')
+          : rowPlain('<div class="rm"><div class="rs">Telefono</div><div class="rt">—</div></div>'))+
+        rowPlain('<div class="rm"><div class="rs">Email</div><div class="rt sel">'+esc(c.email||'—')+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rs">Compleanno</div><div class="rt">'+(c.birthday?esc(new Date(c.birthday+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'long'})):'—')+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rs">Conosciuta tramite</div><div class="rt">'+esc(c.referral||'—')+'</div></div>')+
+      '</div></div>'+
+
+      (c.allergies ? '<div class="g"><div class="gt">Allergie / attenzioni</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt sel" style="color:var(--red);white-space:pre-wrap">'+esc(c.allergies)+'</div></div>')+'</div></div>' : '')+
+      (c.notes ? '<div class="g"><div class="gt">Note</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt sel" style="white-space:pre-wrap">'+esc(c.notes)+'</div></div>')+'</div></div>' : '')+
+
+      '<div class="g"><div class="gt">Storico visite ('+vs.length+')</div><div class="list">'+
+        (vs.length ? vs.map(visItem).join('')
+          : rowPlain('<div class="rm"><div class="rs">Nessuna visita registrata. Puoi aggiungere anche visite passate.</div></div>'))+
+        rowPlain('<div class="rt">+ Aggiungi visita</div>','data-a="new-visit" data-id="'+c.id+'"','tap ctr acc')+
+      '</div></div>'+
+
+      '<div class="g"><div class="gt">Diario ('+ns.length+')</div><div class="list">'+
+        rowPlain('<textarea id="nc" placeholder="Scrivi un appunto su questa cliente\u2026" style="width:100%;background:var(--card-2);border:none;color:var(--text);padding:12px;border-radius:10px;min-height:64px;resize:none;outline:none;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5"></textarea>'+
+          '<button class="btn p s" style="margin-top:10px" data-a="add-note" data-id="'+c.id+'">Aggiungi appunto</button>','','col')+
+        ns.map(function(m){
+          return rowSwipe('del-note', m.id,
+            '<div class="rm"><div class="rt" style="white-space:pre-wrap">'+esc(m.text)+'</div>'+
+            '<div class="rs">'+fmtTs(m.createdAt)+(m.edited?' · modificato':'')+'</div></div>',
+            'data-a="edit-note" data-id="'+m.id+'"');
+        }).join('')+
+      '</div><div class="gf">Scorri un appunto verso sinistra per eliminarlo. Tocca per modificarlo.</div></div>'+
+
+      '<div class="g"><div class="list">'+
+        rowPlain('<div class="rt">Elimina cliente</div>','data-a="del-client" data-id="'+c.id+'"','tap ctr dg')+
+      '</div></div>';
+  }
+};
+/* Riga di una visita: servizio, data, colore, nota e formula tecnica. */
+function visItem(v){
+  var f = [v.brand, v.shade, v.oxy?('vol '+v.oxy):'', v.posa?(v.posa+' min'):''].filter(Boolean).join(' · ');
+  return rowSwipe('del-visit', v.id,
+    '<div class="rm">'+
+      '<div class="rt">'+esc(v.service)+'</div>'+
+      '<div class="rs">'+fmtD(v.date)+opLabel(v)+'</div>'+
+      (v.color ? '<div class="rs">Colore: '+esc(v.color)+'</div>' : '')+
+      (v.note ? '<div class="rs" style="font-style:italic">'+esc(v.note)+'</div>' : '')+
+      (f ? '<div class="rs">Formula: '+esc(f)+'</div>' : '')+
+    '</div>', 'data-a="edit-visit" data-id="'+v.id+'"');
+}
+
+/* ---- DASHBOARD ---- */
+/* Dashboard: contatori, grafico visite, servizi piu' richiesti, blocco note. */
+SC.dash = {
+  title:'Dashboard', brand:true,
+  sub:function(){ return 'Andamento del salone'; },
+  body:function(){
+    var mth = ymOf(today());
+    var vm = LV().filter(function(v){ return v.date && ymOf(v.date)===mth; }).length;
+    var pm = LP().filter(function(p){ return p.date && ymOf(p.date)===mth; }).length;
+    var top = topServices(4), away = awayClients(60,5);
+    return '<div class="stats">'+
+        '<div class="stx"><b>'+LC().length+'</b><i>Clienti</i></div>'+
+        '<div class="stx"><b class="a">'+vm+'</b><i>Visite<br>questo mese</i></div>'+
+        '<div class="stx"><b>'+pm+'</b><i>Appunti<br>questo mese</i></div>'+
+      '</div>'+
+      '<div class="g" style="margin-bottom:-12px"><div class="gt">Visite per mese</div></div>'+
+      chartHtml(perMonth(6))+
+      (top.length ? '<div class="g"><div class="gt">Servizi più richiesti</div><div class="list">'+
+        top.map(function(t){ return rowPlain('<div class="rm"><div class="rt">'+esc(t.name)+'</div></div><span class="rv">'+t.n+'</span>'); }).join('')+
+        '</div></div>' : '')+
+      (away.length ? '<div class="g"><div class="gt">Non si vedono da un po\u2019</div><div class="list">'+
+        away.map(function(a){
+          return rowPlain('<div class="rm"><div class="rt">'+esc(a.c.name)+'</div>'+
+            '<div class="rs">ultima visita '+fmtD(a.last.date)+'</div></div><span class="rv">'+a.d+'g</span>'+CHEV,
+            'data-a="open-client" data-id="'+a.c.id+'"','tap');
+        }).join('')+'</div><div class="gf">Clienti che non passano da più di 60 giorni.</div></div>' : '')+
+      '<div class="g"><div class="gt">Blocco note</div>'+
+        '<textarea class="pad" id="pad">'+esc(state.notepad.text||'')+'</textarea>'+
+        '</div>';
+  }
+};
+/* Conta le visite degli ultimi mesi per il grafico. */
+function perMonth(n){
+  var out = [], now = new Date();
+  for(var i=n-1;i>=0;i--){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    var ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    out.push({ym:ym, label:d.toLocaleDateString('it-IT',{month:'short'}),
+              n:LV().filter(function(v){ return v.date && ymOf(v.date)===ym; }).length});
+  }
+  return out;
+}
+/* Grafico a barre disegnato in SVG: nessuna libreria esterna da caricare. */
+function chartHtml(s){
+  var max = 1;
+  s.forEach(function(x){ if(x.n>max) max = x.n; });
+  var W = 100, gap = 3.4, bw = (W - gap*(s.length-1))/s.length;
+  var bars = s.map(function(x,i){
+    var h = x.n ? Math.max(4, (x.n/max)*76) : 1.5;
+    var xx = i*(bw+gap), yy = 100-h;
+    return '<rect x="'+xx.toFixed(2)+'" y="'+yy.toFixed(2)+'" width="'+bw.toFixed(2)+'" height="'+h.toFixed(2)+
+      '" rx="1.5" fill="'+(x.n?'var(--accent)':'var(--card-3)')+'"/>'+
+      (x.n ? '<text x="'+(xx+bw/2).toFixed(2)+'" y="'+(yy-4).toFixed(2)+'" text-anchor="middle" font-size="7.5" fill="var(--text-2)">'+x.n+'</text>' : '');
+  }).join('');
+  return '<div class="chart"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+bars+'</svg>'+
+    '<div class="lbl" style="grid-template-columns:repeat('+s.length+',1fr)">'+
+    s.map(function(x){ return '<span>'+esc(x.label)+'</span>'; }).join('')+'</div></div>';
+}
+/* Classifica dei servizi piu' richiesti. */
+function topServices(n){
+  var m = {};
+  LV().forEach(function(v){ if(v.service) m[v.service] = (m[v.service]||0)+1; });
+  return Object.keys(m).map(function(k){ return {name:k,n:m[k]}; }).sort(function(a,b){ return b.n-a.n; }).slice(0,n);
+}
+/* Clienti che non si vedono da piu' giorni della soglia indicata. */
+function awayClients(days, n){
+  var out = [];
+  LC().forEach(function(c){
+    var lv = lastVis(c.id); if(!lv) return;
+    var d = dSince(lv.date);
+    if(d > days) out.push({c:c,last:lv,d:d});
+  });
+  return out.sort(function(a,b){ return b.d-a.d; }).slice(0,n);
+}
+
+/* ---- STORICO ---- */
+/* Storico di tutte le visite, con ricerca per cliente. */
+SC.visits = {
+  title:'Storico',
+  sub:function(){ return LV().length+' visite registrate'; },
+  right:function(){ return '<button class="nb" data-a="new-visit">Nuova</button>'; },
+  body:function(){
+    var q = state.qVisit.toLowerCase();
+    var l = LV().slice().sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
+    if(q) l = l.filter(function(v){ var c=cli(v.clientId); return c && String(c.name).toLowerCase().indexOf(q)>=0; });
+    return '<div class="sw-box"><div class="search">'+
+      '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'+
+      '<input id="q-vis" type="search" placeholder="Cerca per cliente" value="'+esc(state.qVisit)+'"></div></div>'+
+      (l.length ? '<div class="g"><div class="list">'+l.map(function(v){
+        var c = cli(v.clientId);
+        var s = v.staffId ? stf(v.staffId) : null;
+        return rowPlain(
+          (s ? '<span class="dot-st" style="background:'+s.color+'"></span>' : '')+
+          '<div class="rm"><div class="rt">'+esc(c?c.name:'Cliente eliminato')+'</div>'+
+          '<div class="rs">'+esc(v.service)+' · '+fmtD(v.date)+opLabel(v)+(v.color?' · '+esc(v.color):'')+'</div></div>'+(c?CHEV:''),
+          c?'data-a="open-client" data-id="'+c.id+'"':'', c?'tap':'');
+      }).join('')+'</div></div>'
+      : '<div class="mt"><b>\uD83D\uDCD6</b>'+(LV().length?'Nessun risultato.':'Nessuna visita registrata.')+'</div>');
+  }
+};
+
+/* ---- IMPOSTAZIONI ---- */
+/* Impostazioni: cloud, listino, installazione, copie di sicurezza. */
+SC.settings = {
+  title:'Impostazioni', brand:true,
+  body:function(){
+    var lb = parseInt(localStorage.getItem(PX+'lastBak')||'0');
+    return '<div class="g"><div class="gt">Cloud del salone</div><div class="list">'+
+        rowPlain('<span class="dt '+syncDot()+'" data-dt></span><div class="rm"><div class="rt" data-sy>'+esc(syncTxt())+'</div></div>')+
+        (cloudOn()
+          ? rowPlain('<div class="rt">Sincronizza adesso</div>','data-a="sync"','tap acc')+
+            rowPlain('<div class="rt">Reinserisci codice di accesso</div>','data-a="cloud-in"','tap acc')+
+            rowPlain('<div class="rt">Copie di riserva sul cloud</div>'+CHEV,'data-a="baks"','tap')+
+            rowPlain('<div class="rt">Scollega questo dispositivo</div>','data-a="cloud-out"','tap dg')
+          : rowPlain('<div class="rt">Inserisci codice di accesso</div>','data-a="cloud-in"','tap acc'))+
+      '</div><div class="gf">'+(cloudOn()
+        ? 'Ogni modifica viene salvata e condivisa con gli altri dispositivi collegati.'
+        : 'Con il codice di accesso i dati si sincronizzano fra tutti i dispositivi del salone. Va inserito una sola volta per dispositivo.')+'</div></div>'+
+
+      '<div class="g"><div class="gt">Gestione</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt">Staff</div><div class="rs">Operatori e colori dell\u2019agenda</div></div><span class="rv">'+LT().length+'</span>'+CHEV,'data-a="staff"','tap')+
+        rowPlain('<div class="rm"><div class="rt">Listino servizi</div></div><span class="rv">'+LS().length+'</span>'+CHEV,'data-a="services"','tap')+
+      '</div></div>'+
+
+      '<div class="g"><div class="gt">Installazione</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt">iPhone / iPad</div><div class="rs">Safari → Condividi → Aggiungi a Home</div></div>')+
+        rowPlain('<div class="rm"><div class="rt">Android</div><div class="rs">Chrome → menu ⋮ → Installa app</div></div>')+
+        rowPlain('<div class="rm"><div class="rt">Computer</div><div class="rs">Chrome/Edge → icona installa nella barra indirizzi</div></div>')+
+      '</div></div>'+
+
+      '<div class="g"><div class="gt">Aggiungi un altro dispositivo</div>'+
+        '<div class="qr"><img src="qr.svg" alt="Codice QR per aprire l\u2019app">'+
+        '<div class="u">github.com/Andrioskij/offline-first-salon-crm</div></div>'+
+        '<div class="gf">Inquadra il codice con la fotocamera per aprire l\u2019app su un altro telefono o tablet. '+
+        'Serve comunque il codice di accesso per vedere i dati.</div></div>'+
+
+      '<div class="g"><div class="gt">Copia di sicurezza</div><div class="list">'+
+        rowPlain('<div class="rt">Scarica backup (.json)</div>','data-a="export"','tap acc')+
+        rowPlain('<div class="rt">Ripristina da file</div>','data-a="import"','tap')+
+        rowPlain('<div class="rt">Ripristina copia locale</div>','data-a="snap"','tap')+
+      '</div><div class="gf">Ultimo backup scaricato: '+(lb?esc(new Date(lb).toLocaleString('it-IT')):'mai')+'.</div>'+
+      '<input type="file" id="rf" accept="application/json" style="display:none"></div>'+
+
+      '<div class="g"><div class="gf" style="text-align:center">Salon CRM · Demo &mdash; tutti i dati sono fittizi.<br>I dati restano salvati anche su questo dispositivo.</div></div>';
+  }
+};
+
+/* Staff: elenco degli operatori con il colore assegnato a ciascuno. */
+SC.staff = {
+  title:'Staff',
+  right:function(){ return '<button class="nb" data-a="new-stf">Nuovo</button>'; },
+  body:function(){
+    var l = LT();
+    if(!l.length) return '<div class="mt"><b>\uD83D\uDC65</b>Nessun membro dello staff.<br>'+
+      'Aggiungendoli potrai assegnare a ciascuno un colore e vedere l\u2019agenda divisa per operatore.'+
+      '<div style="margin-top:16px"><button class="btn p s" data-a="new-stf">Aggiungi il primo</button></div></div>';
+    return '<div class="g"><div class="list">'+l.map(function(s){
+      return rowSwipe('del-stf', s.id,
+        '<span class="dot-st" style="background:'+s.color+'"></span>'+
+        '<div class="rm"><div class="rt">'+esc(s.name)+'</div>'+
+        '<div class="rs">'+(s.role?esc(s.role)+' · ':'')+esc(colorName(s.color))+'</div></div>'+CHEV,
+        'data-a="open-stf" data-id="'+s.id+'"');
+    }).join('')+'</div>'+
+    '<div class="gf">Tocca un nome per vedere il suo riepilogo. Il colore distingue gli impegni nell\u2019agenda.</div></div>';
+  }
+};
+
+/* Scheda del singolo operatore: colori, numeri e attivita' svolta. */
+SC.staffCard = {
+  title:function(s){ return s ? s.name : 'Operatore'; },
+  data:function(id){ return stf(id); },
+  right:function(s){ return s ? '<button class="nb" data-a="edit-stf" data-id="'+s.id+'">Modifica</button>' : ''; },
+  body:function(s){
+    if(!s) return '<div class="mt">Operatore non trovato.</div>';
+    var vs = LV().filter(function(v){ return v.staffId===s.id; })
+                 .sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
+    var mth = ymOf(today());
+    var vm = vs.filter(function(v){ return ymOf(v.date)===mth; }).length;
+    var ps = LP().filter(function(p){ return p.staffId===s.id; });
+    var pm = ps.filter(function(p){ return ymOf(p.date)===mth; }).length;
+
+    // Servizi eseguiti, dal piu' frequente
+    var conta = {};
+    vs.forEach(function(v){ if(v.service) conta[v.service] = (conta[v.service]||0)+1; });
+    var srv = Object.keys(conta).map(function(k){ return {n:k, c:conta[k]}; })
+                    .sort(function(a,b){ return b.c-a.c; });
+
+    return '<div class="pf">'+
+        '<div class="av" style="background:'+s.color+';color:'+readable(s.color)+'">'+esc(ini(s.name))+'</div>'+
+        '<div class="n">'+esc(s.name)+'</div>'+
+        '<div class="m">'+(s.role ? esc(s.role)+' · ' : '')+esc(colorName(s.color))+'</div>'+
+      '</div>'+
+
+      '<div class="stats">'+
+        '<div class="stx"><b>'+vs.length+'</b><i>Visite<br>totali</i></div>'+
+        '<div class="stx"><b class="a">'+vm+'</b><i>Visite<br>questo mese</i></div>'+
+        '<div class="stx"><b>'+pm+'</b><i>Impegni<br>questo mese</i></div>'+
+      '</div>'+
+
+      (srv.length ? '<div class="g"><div class="gt">Servizi eseguiti</div><div class="list">'+
+        srv.map(function(x){
+          return rowPlain('<div class="rm"><div class="rt">'+esc(x.n)+'</div></div><span class="rv">'+x.c+'</span>');
+        }).join('')+'</div></div>' : '')+
+
+      '<div class="g"><div class="gt">Visite svolte ('+vs.length+')</div><div class="list">'+
+        (vs.length ? vs.slice(0,25).map(function(v){
+            var c = cli(v.clientId);
+            return rowPlain('<div class="rm"><div class="rt">'+esc(c?c.name:'Cliente eliminato')+'</div>'+
+              '<div class="rs">'+esc(v.service)+' · '+fmtD(v.date)+'</div></div>'+(c?CHEV:''),
+              c?'data-a="open-client" data-id="'+c.id+'"':'', c?'tap':'');
+          }).join('')
+         : rowPlain('<div class="rm"><div class="rs">Nessuna visita ancora assegnata.</div></div>'))+
+      '</div>'+(vs.length>25 ? '<div class="gf">Mostrate le 25 più recenti.</div>' : '')+'</div>'+
+
+      '<div class="g"><div class="list">'+
+        rowPlain('<div class="rt">Rimuovi dallo staff</div>','data-a="del-stf" data-id="'+s.id+'"','tap ctr dg')+
+      '</div><div class="gf">Le visite e gli impegni già registrati restano, perdono solo il collegamento.</div></div>';
+  }
+};
+
+/* Listino servizi, sotto-schermata delle Impostazioni. */
+SC.services = {
+  title:'Listino servizi',
+  right:function(){ return '<button class="nb" data-a="new-svc">Nuovo</button>'; },
+  body:function(){
+    var l = LS();
+    if(!l.length) return '<div class="mt"><b>\u2702\uFE0F</b>Nessun servizio a listino.'+
+      '<div style="margin-top:16px"><button class="btn p s" data-a="new-svc">Aggiungi servizio</button></div></div>';
+    return '<div class="g"><div class="list">'+l.map(function(s){
+      return rowSwipe('del-svc', s.id,
+        '<div class="rm"><div class="rt">'+esc(s.name)+'</div>'+
+        '<div class="rs">'+(s.duration?s.duration+' min':'')+(s.category?' · '+esc(s.category):'')+'</div></div>'+
+        '<span class="rv">€'+esc(s.price)+'</span>'+CHEV,
+        'data-a="edit-svc" data-id="'+s.id+'"');
+    }).join('')+'</div><div class="gf">Scorri verso sinistra per eliminare. Tocca per modificare.</div></div>';
+  }
+};
+
+/* ===== Bottom sheet ===== */
+/* Apre il pannello che sale dal basso; con saveLabel a null diventa di sola lettura. */
+function sheet(title, body, mount, saveLabel){
+  var r = document.getElementById('sh');
+  r.innerHTML = '<div class="bd" data-a="close"></div><div class="sheet"><div class="gb"></div>'+
+    '<div class="sh-h"><button class="nb" data-a="close">'+(saveLabel===null?'Chiudi':'Annulla')+'</button>'+
+    '<div class="sh-t">'+esc(title)+'</div>'+
+    (saveLabel===null ? '<span class="nb-sp"></span>' : '<button class="nb b" id="sv">'+esc(saveLabel||'Salva')+'</button>')+
+    '</div><div class="sh-b">'+body+'</div></div>';
+  requestAnimationFrame(function(){ r.classList.add('on'); });
+  if(mount) mount();
+}
+/* Chiude il pannello e ne libera il contenuto a animazione finita. */
+function closeSheet(){
+  var r = document.getElementById('sh');
+  r.classList.remove('on');
+  setTimeout(function(){ if(!r.classList.contains('on')) r.innerHTML=''; }, 420);
+}
+/* Collega l'azione al pulsante Salva del pannello. */
+function onSave(f){ var b=document.getElementById('sv'); if(b) b.onclick=f; }
+/* Legge e ripulisce il valore di un campo del modulo. */
+function V(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+
+/* Operatore scelto nel modulo appunto finche' il pannello resta aperto. */
+var pStaffSel = '';
+
+/* Operatore scelto nel modulo visita. */
+var vStaffSel = '';
+
+/* Etichette colorate per assegnare un operatore. Usate sia negli appunti
+   dell'agenda sia nelle visite, cosi' il nome e' sempre lo stesso record. */
+function opsHtml(sel){
+  sel = sel===undefined ? pStaffSel : sel;
+  return LT().map(function(s){
+    return '<button class="op-c'+(sel===s.id?' on':'')+'" data-a="op-pick" data-id="'+s.id+'">'+
+      '<span class="dot-st" style="background:'+s.color+'"></span>'+esc(s.name)+'</button>';
+  }).join('') +
+  '<button class="op-c'+(sel?'':' on')+'" data-a="op-pick" data-id="">'+
+  '<span class="dot-st" style="background:var(--card-3)"></span>Nessuno</button>';
+}
+
+/* Selettore cliente con ricerca: sostituisce il menu a tendina, impraticabile
+   quando i clienti diventano centinaia. Il valore scelto vive in pkSel finche'
+   il pannello resta aperto. */
+var pkSel = '';
+
+/* Disegna il selettore: se un cliente e' gia' scelto mostra il nome con "Cambia",
+   altrimenti il campo di ricerca con i suggerimenti. */
+function pkInner(opzionale){
+  var c = pkSel ? cli(pkSel) : null;
+  if(c){
+    return '<div class="pk-chip"><span class="nm">'+esc(c.name)+'</span>'+
+           '<button data-a="pk-clear">Cambia</button></div>';
+  }
+  return '<input id="pk-q" type="search" placeholder="Cerca cliente per nome o telefono" autocapitalize="words">'+
+         '<div class="pk-list" id="pk-list">'+pkItems('')+'</div>'+
+         (opzionale ? '<div class="pk-hint">Facoltativo: lascia vuoto per un impegno non legato a un cliente.</div>' : '');
+}
+
+/* Risultati della ricerca. A campo vuoto propone i clienti visti di recente,
+   che sono quasi sempre quelli che servono. */
+function pkItems(q){
+  q = String(q||'').toLowerCase().trim();
+  var l = LC();
+  if(q){
+    l = l.filter(function(c){
+      return String(c.name).toLowerCase().indexOf(q)>=0 || String(c.phone||'').replace(/\s/g,'').indexOf(q)>=0;
+    }).sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'it'); }).slice(0,12);
+  } else {
+    l = l.slice().sort(function(a,b){
+      var la = lastVis(a.id), lb = lastVis(b.id);
+      if(la && lb) return String(lb.date).localeCompare(String(la.date));
+      if(la) return -1;
+      if(lb) return 1;
+      return String(a.name).localeCompare(String(b.name),'it');
+    }).slice(0,6);
+  }
+  if(!l.length){
+    return '<div class="pk-none">'+(LC().length ? 'Nessun cliente trovato.' : 'Nessun cliente in archivio.')+'</div>';
+  }
+  return l.map(function(c){
+    var lv = lastVis(c.id);
+    return '<div class="pk-it" data-a="pk-pick" data-id="'+c.id+'">'+esc(c.name)+
+      (lv ? '<div class="sub">ultima visita '+fmtD(lv.date)+'</div>' : (c.phone?'<div class="sub">'+esc(c.phone)+'</div>':''))+
+      '</div>';
+  }).join('');
+}
+
+/* Ridisegna solo il selettore, senza toccare il resto del modulo. */
+function pkRefresh(opzionale){
+  var box = document.getElementById('pk-box');
+  if(box) box.innerHTML = pkInner(opzionale);
+}
+
+/* Modulo di creazione o modifica di una scheda cliente. */
+function clientSheet(x){
+  var c = x || {name:'',phone:'',email:'',birthday:'',referral:'',notes:'',allergies:''};
+  sheet(x?'Modifica cliente':'Nuovo cliente',
+    '<div class="f"><label>Nome e cognome</label><input id="f-n" value="'+esc(c.name)+'" placeholder="Es. Maria Rossi" autocapitalize="words"></div>'+
+    '<div class="f"><label>Telefono</label><input id="f-p" type="tel" value="'+esc(c.phone)+'" placeholder="333 1234567"></div>'+
+    '<div class="f"><label>Email</label><input id="f-e" type="email" value="'+esc(c.email||'')+'" placeholder="opzionale" autocapitalize="off"></div>'+
+    '<div class="fr"><div class="f"><label>Compleanno</label><input id="f-b" type="date" value="'+esc(c.birthday||'')+'"></div>'+
+    '<div class="f"><label>Conosciuta tramite</label><input id="f-r" value="'+esc(c.referral||'')+'" placeholder="Passaparola…"></div></div>'+
+    '<div class="f"><label>Allergie / attenzioni</label><textarea id="f-a" placeholder="Es. sensibilità all\u2019ammoniaca">'+esc(c.allergies||'')+'</textarea></div>'+
+    '<div class="f"><label>Note</label><textarea id="f-no" placeholder="Preferenze, tipo di capello…">'+esc(c.notes||'')+'</textarea></div>',
+  function(){
+    onSave(function(){
+      var n = V('f-n'); if(!n){ toast('Inserisci almeno il nome.'); return; }
+      var d = {name:n, phone:V('f-p'), email:V('f-e'), birthday:V('f-b'), referral:V('f-r'),
+               notes:V('f-no'), allergies:V('f-a'), updatedAt:Date.now()};
+      if(x) Object.assign(x,d); else state.clients.push(Object.assign({id:uid(),createdAt:Date.now()},d));
+      sk('clients',state.clients); closeSheet(); render();
+    });
+    document.getElementById('f-n').focus();
+  });
+}
+
+/* Modulo di una visita: servizio, chi ha lavorato, colore in testo libero e formula. */
+function visitSheet(x, pre){
+  var v = x || {clientId:pre||'', date:today(), service:'', stylist:'', color:'', note:'', brand:'', shade:'', oxy:'', posa:''};
+  var cs = LC().sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'it'); });
+  if(!cs.length){ toast('Aggiungi prima un cliente.'); return; }
+  pkSel = pre || v.clientId || '';
+  vStaffSel = v.staffId || '';
+  var so = '<option value="">— seleziona —</option>'+LS().map(function(s){
+    return '<option value="'+esc(s.name)+'" '+(v.service===s.name?'selected':'')+'>'+esc(s.name)+'</option>'; }).join('');
+  sheet(x?'Modifica visita':'Nuova visita',
+    '<div class="f"><label>Cliente</label>'+
+      (pre ? '<div class="pk-chip"><span class="nm">'+esc((cli(pre)||{}).name||'')+'</span></div>'
+           : '<div id="pk-box">'+pkInner(false)+'</div>')+
+    '</div>'+
+    '<div class="f"><label>Data</label><input id="f-d" type="date" value="'+esc(v.date)+'"></div>'+
+    '<div class="f"><label>Servizio</label><select id="f-s">'+so+'</select></div>'+
+    (LT().length
+      ? '<div class="f"><label>Chi taglia i capelli?</label><div class="ops" id="v-ops">'+opsHtml(vStaffSel)+'</div></div>'
+      : '<div class="f"><label>Chi taglia i capelli?</label><input id="f-st" value="'+esc(v.stylist||'')+'" placeholder="Nome di chi ha lavorato" autocapitalize="words">'+
+        '<div class="pk-hint">Aggiungi lo staff dalle Impostazioni per scegliere con un tocco.</div></div>')+
+    '<div class="f"><label>Colore usato</label><input id="f-co" value="'+esc(v.color||'')+'" placeholder="Es. biondo cenere, rosso rame…"></div>'+
+    '<div class="fr"><div class="f"><label>Marca</label><input id="f-br" value="'+esc(v.brand||'')+'" placeholder="Es. Wella"></div>'+
+    '<div class="f"><label>Codice tinta</label><input id="f-sh" value="'+esc(v.shade||'')+'" placeholder="Es. 7.3"></div></div>'+
+    '<div class="fr"><div class="f"><label>Ossigeno (vol)</label><input id="f-ox" inputmode="numeric" value="'+esc(v.oxy||'')+'" placeholder="20"></div>'+
+    '<div class="f"><label>Posa (min)</label><input id="f-po" inputmode="numeric" value="'+esc(v.posa||'')+'" placeholder="35"></div></div>'+
+    '<div class="f"><label>Nota</label><textarea id="f-nt" placeholder="Dettagli particolari…">'+esc(v.note||'')+'</textarea></div>',
+  function(){
+    onSave(function(){
+      var id = pre || pkSel, s = V('f-s');
+      if(!id){ toast('Seleziona un cliente.'); return; }
+      if(!s){ toast('Seleziona un servizio.'); return; }
+      var d = {clientId:id, date:V('f-d')||today(), service:s,
+               staffId:vStaffSel, stylist:(LT().length ? '' : V('f-st')), color:V('f-co'),
+               note:V('f-nt'), brand:V('f-br'), shade:V('f-sh'), oxy:V('f-ox'), posa:V('f-po'), updatedAt:Date.now()};
+      if(x) Object.assign(x,d); else state.visits.push(Object.assign({id:uid(),createdAt:Date.now()},d));
+      sk('visits',state.visits); closeSheet(); render();
+    });
+  });
+}
+
+/* Modulo di un appunto d'agenda. In modifica archivia la versione precedente nella cronologia. */
+function postSheet(x){
+  var p = x || {date:state.pickDate||today(), text:'', clientId:''};
+  pkSel = p.clientId || '';
+  pStaffSel = p.staffId || '';
+  sheet(x?'Modifica appuntamento':'Nuovo appuntamento',
+    '<div class="fr">'+
+      '<div class="f"><label>Giornata</label><input id="p-d" type="date" value="'+esc(p.date)+'"></div>'+
+      '<div class="f"><label>Ora (facoltativa)</label><input id="p-h" type="time" value="'+esc(p.time||'')+'"></div>'+
+    '</div>'+
+    '<div class="f"><label>Impegno</label><textarea id="p-t" style="min-height:110px" placeholder="Es. Colore e piega. Oppure: ordinare tinte, chiamare fornitore…">'+esc(p.text)+'</textarea></div>'+
+    (LT().length ? '<div class="f"><label>Chi se ne occupa</label><div class="ops" id="p-ops">'+opsHtml()+'</div></div>' : '')+
+    '<div class="f"><label>Collega a un cliente</label><div id="pk-box" data-opt="1">'+pkInner(true)+'</div></div>'+
+    (x && x.history && x.history.length ? '<div class="gf" style="margin:0">Appuntamento modificato '+x.history.length+(x.history.length===1?' volta':' volte')+'. La cronologia resta salvata.</div>' : ''),
+  function(){
+    onSave(function(){
+      var t = V('p-t');
+      if(!t){ toast('Scrivi il testo dell\u2019appuntamento.'); return; }
+      if(x){
+        if(t !== x.text){
+          x.history = x.history || [];
+          x.history.push({text:x.text, at:x.updatedAt || x.createdAt});
+        }
+        x.text = t; x.date = V('p-d')||x.date; x.time = V('p-h');
+        x.clientId = pkSel; x.staffId = pStaffSel; x.updatedAt = Date.now();
+      } else {
+        state.posts.push({id:uid(), date:V('p-d')||today(), time:V('p-h'), text:t,
+                          clientId:pkSel, staffId:pStaffSel,
+                          createdAt:Date.now(), updatedAt:Date.now(), history:[]});
+      }
+      sk('posts',state.posts); closeSheet(); render();
+    });
+    document.getElementById('p-t').focus();
+  });
+}
+
+/* Mostra la cronologia completa delle modifiche di un appunto. */
+function histSheet(p){
+  if(!p) return;
+  var h = (p.history||[]).slice().reverse();
+  sheet('Cronologia modifiche',
+    '<div class="list">'+
+      rowPlain('<div class="rm"><div class="rs" style="color:var(--accent-2)">Versione attuale</div>'+
+        '<div class="rt" style="white-space:pre-wrap">'+esc(p.text)+'</div>'+
+        '<div class="rs">'+fmtTs(p.updatedAt||p.createdAt)+'</div></div>')+
+      h.map(function(v){
+        return rowPlain('<div class="rm"><div class="rt" style="white-space:pre-wrap;color:var(--text-2)">'+esc(v.text)+'</div>'+
+          '<div class="rs">'+fmtTs(v.at)+'</div></div>');
+      }).join('')+
+    '</div>', null, null);
+}
+
+/* Colore scelto nel modulo staff finche' il pannello resta aperto. */
+var stfColorSel = '';
+
+/* Palette: 70 tinte pronte piu' un selettore libero per qualunque altro colore. */
+function paletteHtml(){
+  return '<div class="pal" id="pal">'+
+    PALETTE.map(function(riga){
+      return '<div class="pal-row">'+riga.map(function(x){
+        return '<div class="pal-c'+(x.c.toUpperCase()===stfColorSel.toUpperCase()?' on':'')+
+          '" data-a="pal-pick" data-id="'+x.c+'" title="'+esc(x.n)+'"></div>';
+      }).join('')+'</div>';
+    }).join('')+
+    '<div class="pal-name" id="pal-name">'+esc(colorName(stfColorSel))+'</div>'+
+  '</div>';
+}
+
+/* Modulo di un membro dello staff: nome, ruolo e colore identificativo. */
+function staffSheet(x){
+  var s = x || {name:'', role:'', color:''};
+  // A un nuovo membro proponiamo il primo colore non ancora usato
+  if(!s.color){
+    var usati = LT().map(function(t){ return String(t.color).toUpperCase(); });
+    var libero = PALETTE[2].filter(function(x){ return usati.indexOf(x.c.toUpperCase())<0; })[0];
+    s.color = libero ? libero.c : '#D24C93';
+  }
+  stfColorSel = s.color;
+  sheet(x?'Modifica membro':'Nuovo membro',
+    '<div class="f"><label>Nome</label><input id="t-n" value="'+esc(s.name)+'" placeholder="Es. Francesca" autocapitalize="words"></div>'+
+    '<div class="f"><label>Ruolo (facoltativo)</label><input id="t-r" value="'+esc(s.role||'')+'" placeholder="Es. colorista"></div>'+
+    '<div class="f"><label>Colore nell\u2019agenda</label>'+paletteHtml()+'</div>',
+  function(){
+    document.querySelectorAll('#pal .pal-c').forEach(function(el){
+      el.style.background = el.dataset.id;
+    });
+    onSave(function(){
+      var n = V('t-n'); if(!n){ toast('Inserisci il nome.'); return; }
+      var d = {name:n, role:V('t-r'), color:stfColorSel, updatedAt:Date.now()};
+      if(x) Object.assign(x,d); else state.staff.push(Object.assign({id:uid(),createdAt:Date.now()},d));
+      sk('staff',state.staff); closeSheet(); render();
+    });
+    document.getElementById('t-n').focus();
+  });
+}
+
+/* Modulo di un servizio del listino. */
+function svcSheet(x){
+  var s = x || {name:'',category:'',duration:30,price:''};
+  sheet(x?'Modifica servizio':'Nuovo servizio',
+    '<div class="f"><label>Nome servizio</label><input id="s-n" value="'+esc(s.name)+'" placeholder="Es. Balayage" autocapitalize="words"></div>'+
+    '<div class="f"><label>Categoria</label><input id="s-c" value="'+esc(s.category||'')+'" placeholder="Es. Colore"></div>'+
+    '<div class="fr"><div class="f"><label>Durata (min)</label><input id="s-d" inputmode="numeric" value="'+esc(s.duration||'')+'"></div>'+
+    '<div class="f"><label>Prezzo (€)</label><input id="s-p" inputmode="decimal" value="'+esc(s.price||'')+'"></div></div>',
+  function(){
+    onSave(function(){
+      var n = V('s-n'); if(!n){ toast('Inserisci il nome.'); return; }
+      var d = {name:n, category:V('s-c'), duration:parseInt(V('s-d'))||0, price:parseFloat(V('s-p'))||0, updatedAt:Date.now()};
+      if(x) Object.assign(x,d); else state.services.push(Object.assign({id:uid()},d));
+      sk('services',state.services); closeSheet(); render();
+    });
+  });
+}
+
+/* Modulo di modifica di un appunto del diario cliente. */
+function noteSheet(m){
+  if(!m) return;
+  sheet('Modifica appunto','<div class="f"><textarea id="n-t" style="min-height:130px">'+esc(m.text)+'</textarea></div>', function(){
+    onSave(function(){
+      var t = V('n-t'); if(!t){ toast('Non può essere vuoto.'); return; }
+      m.text=t; m.edited=true; m.updatedAt=Date.now();
+      sk('comments',state.comments); closeSheet(); render();
+    });
+    document.getElementById('n-t').focus();
+  });
+}
+
+/* Richiesta del codice di accesso: lo verifica sul server prima di memorizzarlo. */
+function pwSheet(err){
+  sheet('Cloud del salone',
+    '<div class="f"><label>Codice di accesso</label><input id="pwf" type="password" autocomplete="current-password" placeholder="Inserisci il codice"></div>'+
+    '<div style="font-size:14px;color:'+(err?'var(--red)':'var(--text-2)')+';line-height:1.5">'+
+      (err?esc(err):'Con il codice, i dati si sincronizzano fra tutti i dispositivi del salone. '+
+        'Se la sincronizzazione si e\u2019 interrotta, reinserirlo qui ripristina subito il collegamento.')+'</div>',
+  function(){
+    var go = function(){
+      var p = V('pwf'); if(!p){ toast('Inserisci il codice.'); return; }
+      pw = p;
+      api('load').then(function(){
+        try{ localStorage.setItem(PX+'pw', p); }catch(e){}
+        sSt='idle'; closeSheet(); paintSync(); render();
+        toast('Collegato al cloud.'); syncNow();
+      }).catch(function(e){
+        pw = null; closeSheet();
+        if(String(e.message)==='unauthorized') setTimeout(function(){ pwSheet('Codice non corretto. Riprova.'); }, 430);
+        else { sSt='error'; paintSync(); toast('Cloud non raggiungibile: i dati restano salvati qui.'); }
+      });
+    };
+    onSave(go);
+    var i = document.getElementById('pwf'); i.focus();
+    i.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+  });
+}
+
+/* Elenco delle copie di riserva presenti sul cloud, con ripristino. */
+function baksSheet(){
+  sheet('Copie di riserva','<div style="color:var(--text-2);font-size:15px;padding:6px 0">Caricamento…</div>', null, null);
+  api('backups').then(function(res){
+    var l = res.backups||[], b = document.querySelector('.sh-b');
+    if(!b) return;
+    b.innerHTML = l.length
+      ? '<div class="list">'+l.map(function(x){
+          return rowPlain('<div class="rm"><div class="rt">'+esc(x.at)+'</div></div><span class="rv">Ripristina</span>',
+            'data-a="restore" data-id="'+x.id+'"','tap');
+        }).join('')+'</div><div class="gf">Il ripristino sostituisce i dati sul cloud con quelli della copia scelta.</div>'
+      : '<div style="color:var(--text-2);font-size:15px;padding:6px 0">Nessuna copia ancora. Vengono create automaticamente a ogni salvataggio.</div>';
+  }).catch(function(){
+    var b = document.querySelector('.sh-b');
+    if(b) b.innerHTML = '<div style="color:var(--red);font-size:15px;padding:6px 0">Impossibile caricare le copie.</div>';
+  });
+}
+
+/* Riepilogo operatori in stampa: stessa informazione dell'app, in bianco e nero
+   resta comprensibile grazie al nome accanto al quadratino. */
+function legendPrint(ps){
+  var conta={}, ordine=[];
+  ps.forEach(function(p){
+    if(!p.staffId) return;
+    if(conta[p.staffId]===undefined){ conta[p.staffId]=0; ordine.push(p.staffId); }
+    conta[p.staffId]++;
+  });
+  if(!ordine.length) return '';
+  return '<p class="pr-leg">'+ordine.map(function(id){
+    var s=stf(id); if(!s) return '';
+    return '<span><span class="pr-bar" style="background:'+s.color+'"></span>'+esc(s.name)+' · '+conta[id]+'</span>';
+  }).join('')+'</p>';
+}
+
+/* ===== Stampa =====
+   Costruisce le tabelle su fondo bianco e chiede al sistema di stamparle.
+   Il foglio di stile per la stampa nasconde tutto il resto dell'app. */
+
+/* Aggiunge giorni a una data in formato AAAA-MM-GG. */
+function addDays(iso, n){
+  var p = iso.split('-');
+  var d = new Date(+p[0], +p[1]-1, +p[2]+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+/* Lunedi' della settimana di una certa data. */
+function mondayOf(iso){
+  var p = iso.split('-'), d = new Date(+p[0], +p[1]-1, +p[2]);
+  return addDays(iso, -((d.getDay()+6)%7));
+}
+
+/* Finestra di scelta: quali giornate mandare in stampa. */
+function printSheet(){
+  var da = state.pickDate, a = state.pickDate;
+  sheet('Stampa agenda',
+    '<div class="f"><label>Scelte rapide</label><div class="ops" id="pr-quick">'+
+      '<button class="op-c" data-a="pr-preset" data-id="oggi">Solo questa giornata</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="settimana">Questa settimana</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="sette">Prossimi 7 giorni</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="mese">Tutto il mese</button>'+
+    '</div></div>'+
+    '<div class="fr">'+
+      '<div class="f"><label>Dal giorno</label><input id="pr-da" type="date" value="'+esc(da)+'"></div>'+
+      '<div class="f"><label>Al giorno</label><input id="pr-a" type="date" value="'+esc(a)+'"></div>'+
+    '</div>'+
+    '<div class="pk-hint" id="pr-info"></div>',
+  function(){
+    aggiornaInfoStampa();
+    onSave(function(){
+      var d1 = V('pr-da') || state.pickDate, d2 = V('pr-a') || d1;
+      if(d2 < d1){ var t=d1; d1=d2; d2=t; }
+      closeSheet();
+      setTimeout(function(){ printRange(d1, d2); }, 420);
+    });
+    var b = document.getElementById('sv'); if(b) b.textContent = 'Stampa';
+  }, 'Stampa');
+}
+
+/* Conta quante giornate e quanti impegni finirebbero in stampa. */
+function aggiornaInfoStampa(){
+  var el = document.getElementById('pr-info'); if(!el) return;
+  var d1 = V('pr-da'), d2 = V('pr-a');
+  if(!d1 || !d2){ el.textContent = ''; return; }
+  if(d2 < d1){ var t=d1; d1=d2; d2=t; }
+  var giorni = 0, impegni = 0, g = d1, guardia = 0;
+  while(g <= d2 && guardia++ < 400){
+    var n = postsOn(g).length;
+    if(n){ giorni++; impegni += n; }
+    g = addDays(g, 1);
+  }
+  el.textContent = giorni
+    ? giorni+(giorni===1?' giornata':' giornate')+' con impegni · '+impegni+(impegni===1?' riga':' righe')+' in totale'
+    : 'Nessun impegno nel periodo scelto.';
+}
+
+/* Genera il documento: una sezione per giornata, ognuna su una pagina nuova. */
+function printRange(d1, d2){
+  var sezioni = [], totale = 0, giornate = 0, g = d1, guardia = 0;
+  while(g <= d2 && guardia++ < 400){
+    var ps = postsOn(g);
+    if(ps.length){
+      giornate++; totale += ps.length;
+      var righe = ps.map(function(p){
+        var s = p.staffId ? stf(p.staffId) : null;
+        var c = p.clientId ? cli(p.clientId) : null;
+        return '<tr>'+
+          '<td class="ora">'+esc(p.time||'')+'</td>'+
+          '<td>'+esc(p.text)+(c?'<br><i>'+esc(c.name)+'</i>':'')+'</td>'+
+          '<td class="op">'+(s?'<span class="pr-bar" style="background:'+s.color+'"></span>'+esc(s.name):'')+'</td>'+
+        '</tr>';
+      }).join('');
+      sezioni.push('<section class="pr-day">'+
+        '<div class="pr-h"><h1>Salon CRM &mdash; Demo</h1>'+
+        '<p class="pr-d">'+esc(cap(fmtDay(g)))+'</p>'+legendPrint(ps)+'</div>'+
+        '<table class="pr-t"><thead><tr><th>Orario</th><th>Tipo di lavoro</th><th>Staff</th></tr></thead>'+
+        '<tbody>'+righe+'</tbody></table></section>');
+    }
+    g = addDays(g, 1);
+  }
+  if(!sezioni.length){ toast('Nessun impegno da stampare nel periodo scelto.'); return; }
+  document.getElementById('printable').innerHTML = sezioni.join('') +
+    '<div class="pr-f">'+giornate+(giornate===1?' giornata':' giornate')+' · '+
+    totale+(totale===1?' impegno':' impegni')+' · stampato il '+new Date().toLocaleString('it-IT')+'</div>';
+  setTimeout(function(){ window.print(); }, 60);
+}
+
+/* ===== Backup ===== */
+/* Una volta al giorno congela una copia locale di sicurezza, mai sovrascrivendola con una vuota. */
+function snapDaily(){
+  try{
+    var t = today();
+    if(localStorage.getItem(PX+'snapD')===t) return;
+    var s = {date:t, clients:lk('clients',[]), visits:lk('visits',[]), services:lk('services',[]),
+             comments:lk('comments',[]), posts:lk('posts',[]), staff:lk('staff',[]),
+             notepad:lk('notepad',{text:'',updatedAt:0})};
+    if((s.clients.length+s.visits.length+s.posts.length) > 0 || !localStorage.getItem(PX+'snap')){
+      localStorage.setItem(PX+'snap', JSON.stringify(s));
+      localStorage.setItem(PX+'snapD', t);
+    }
+  }catch(e){}
+}
+/* Ripristina la copia locale di sicurezza previa conferma. */
+function snapRestore(){
+  try{
+    var r = localStorage.getItem(PX+'snap');
+    if(!r){ toast('Nessuna copia locale.'); return; }
+    var s = JSON.parse(r);
+    if(!confirm('Ripristinare la copia locale del '+(s.date||'?')+'? Sostituirà i dati su questo dispositivo.')) return;
+    state.clients=s.clients||[]; state.visits=s.visits||[]; state.services=s.services||state.services;
+    state.comments=s.comments||[]; state.posts=s.posts||[]; state.staff=s.staff||[];
+    state.notepad=s.notepad||state.notepad;
+    persistAll(); state.stack=[]; render(); toast('Copia locale ripristinata.');
+  }catch(e){ toast('Copia non leggibile.'); }
+}
+/* Scarica l'intero archivio come file .json. */
+function exportBak(){
+  var b = new Blob([JSON.stringify(Object.assign({exportedAt:new Date().toISOString()}, pack()),null,2)],{type:'application/json'});
+  var u = URL.createObjectURL(b), a = document.createElement('a');
+  a.href=u; a.download='saloncrm-backup-'+today()+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
+  localStorage.setItem(PX+'lastBak', String(Date.now()));
+  toast('Backup scaricato.'); render();
+}
+/* Ripristina l'archivio da un file .json previa conferma. */
+function importBak(file){
+  var r = new FileReader();
+  r.onload = function(e){
+    try{
+      var d = JSON.parse(e.target.result);
+      if(!Array.isArray(d.clients)){ toast('File non valido.'); return; }
+      if(!confirm('Il backup sostituirà i dati su questo dispositivo. Continuare?')) return;
+      state.clients=d.clients||[]; state.visits=d.visits||d.appointments||[];
+      state.services=d.services||state.services; state.comments=d.comments||[];
+      state.posts=d.posts||[]; state.staff=d.staff||[]; state.notepad=d.notepad||state.notepad;
+      persistAll(); state.stack=[]; render(); toast('Backup ripristinato.');
+    }catch(x){ toast('Impossibile leggere il file.'); }
+  };
+  r.readAsText(file);
+}
+
+/* ===== Eventi ===== */
+/* Gestore unico dei tocchi: ogni elemento con data-a dichiara la propria azione.
+   Un solo ascoltatore per tutta l'app, quindi le schermate possono essere ridisegnate liberamente. */
+document.addEventListener('click', function(e){
+  var el = e.target.closest('[data-a]');
+  if(!el) return;
+  var a = el.dataset.a, id = el.dataset.id;
+  var op = document.querySelector('.row.op');
+  if(op && !op.contains(el)){ op.classList.remove('op'); return; }
+
+  if(a==='tab') tab(id);
+  else if(a==='back') pop();
+  else if(a==='close') closeSheet();
+
+  else if(a==='pick'){ state.pickDate = id; render(); }
+  else if(a==='mprev' || a==='mnext'){
+    var p = state.calMonth.split('-'), d = new Date(+p[0], +p[1]-1+(a==='mnext'?1:-1), 1);
+    state.calMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    render();
+  }
+  else if(a==='mtoday'){ state.calMonth = ymOf(today()); state.pickDate = today(); render(); }
+  else if(a==='pk-pick'){
+    pkSel = id;
+    pkRefresh(document.getElementById('pk-box') && document.getElementById('pk-box').dataset.opt==='1');
+  }
+  else if(a==='pk-clear'){
+    pkSel = '';
+    var opt = document.getElementById('pk-box') && document.getElementById('pk-box').dataset.opt==='1';
+    pkRefresh(opt);
+    var q = document.getElementById('pk-q'); if(q) q.focus();
+  }
+  else if(a==='new-post') postSheet(null);
+  else if(a==='edit-post') postSheet(state.posts.filter(function(p){ return p.id===id; })[0]);
+  else if(a==='post-hist'){ e.stopPropagation(); histSheet(state.posts.filter(function(p){ return p.id===id; })[0]); }
+  else if(a==='del-post'){
+    var pp = state.posts.filter(function(x){ return x.id===id; })[0];
+    if(pp){ pp.deleted=true; pp.updatedAt=Date.now(); }
+    sk('posts',state.posts); render(); toast('Appuntamento eliminato.');
+  }
+
+  else if(a==='new-client') clientSheet(null);
+  else if(a==='edit-client') clientSheet(cli(id));
+  else if(a==='open-client') push('client', id);
+  else if(a==='del-client'){
+    if(confirm('Eliminare questa scheda cliente?')){
+      var cc = state.clients.filter(function(x){ return x.id===id; })[0];
+      if(cc){ cc.deleted=true; cc.updatedAt=Date.now(); }
+      sk('clients',state.clients);
+      if(cur().view==='client') pop(); else render();
+      toast('Cliente eliminato.');
+    }
+  }
+  else if(a==='wa'){
+    var c2 = cli(id); if(!c2 || !c2.phone) return;
+    ext(waUrl(c2.phone, 'Ciao '+String(c2.name).split(' ')[0]+'! '));
+  }
+  else if(a==='call'){
+    var c3 = cli(id); if(!c3) return;
+    callNumber(c3.phone);
+  }
+
+  else if(a==='new-visit') visitSheet(null, id||null);
+  else if(a==='edit-visit') visitSheet(state.visits.filter(function(v){ return v.id===id; })[0]);
+  else if(a==='del-visit'){
+    var v2 = state.visits.filter(function(x){ return x.id===id; })[0];
+    if(v2){ v2.deleted=true; v2.updatedAt=Date.now(); }
+    sk('visits',state.visits); render(); toast('Visita eliminata.');
+  }
+
+  else if(a==='add-note'){
+    var ta = document.getElementById('nc'), t = ta?ta.value.trim():'';
+    if(!t){ toast('Scrivi prima l\u2019appunto.'); return; }
+    state.comments.push({id:uid(), clientId:id, text:t, createdAt:Date.now(), updatedAt:Date.now()});
+    sk('comments',state.comments); render();
+  }
+  else if(a==='edit-note') noteSheet(state.comments.filter(function(m){ return m.id===id; })[0]);
+  else if(a==='del-note'){
+    var m2 = state.comments.filter(function(x){ return x.id===id; })[0];
+    if(m2){ m2.deleted=true; m2.updatedAt=Date.now(); }
+    sk('comments',state.comments); render();
+  }
+
+  else if(a==='services') push('services');
+  else if(a==='staff') push('staff');
+  else if(a==='open-stf') push('staffCard', id);
+  else if(a==='new-stf') staffSheet(null);
+  else if(a==='edit-stf') staffSheet(stf(id));
+  else if(a==='del-stf'){
+    if(confirm('Rimuovere questo operatore? Visite e impegni gia\u2019 registrati restano.')){
+      var t2 = state.staff.filter(function(x){ return x.id===id; })[0];
+      if(t2){ t2.deleted=true; t2.updatedAt=Date.now(); }
+      sk('staff',state.staff);
+      if(cur().view==='staffCard') pop(); else render();
+      toast('Operatore rimosso.');
+    }
+  }
+  else if(a==='pal-pick'){
+    stfColorSel = id;
+    document.querySelectorAll('#pal .pal-c').forEach(function(el){
+      el.classList.toggle('on', el.dataset.id.toUpperCase()===String(id).toUpperCase());
+    });
+    var pn = document.getElementById('pal-name');
+    if(pn) pn.textContent = colorName(id);
+  }
+  else if(a==='op-pick'){
+    var boxP = document.getElementById('p-ops'), boxV = document.getElementById('v-ops');
+    if(boxV){ vStaffSel = id || ''; boxV.innerHTML = opsHtml(vStaffSel); }
+    else if(boxP){ pStaffSel = id || ''; boxP.innerHTML = opsHtml(pStaffSel); }
+  }
+  else if(a==='print-day') printSheet();
+  else if(a==='pr-preset'){
+    var da = document.getElementById('pr-da'), aa = document.getElementById('pr-a');
+    if(!da || !aa) return;
+    if(id==='oggi'){ da.value = state.pickDate; aa.value = state.pickDate; }
+    else if(id==='settimana'){ da.value = mondayOf(state.pickDate); aa.value = addDays(mondayOf(state.pickDate), 6); }
+    else if(id==='sette'){ da.value = state.pickDate; aa.value = addDays(state.pickDate, 6); }
+    else if(id==='mese'){
+      var p = state.pickDate.split('-');
+      da.value = p[0]+'-'+p[1]+'-01';
+      aa.value = p[0]+'-'+p[1]+'-'+String(new Date(+p[0], +p[1], 0).getDate()).padStart(2,'0');
+    }
+    document.querySelectorAll('#pr-quick .op-c').forEach(function(b){ b.classList.toggle('on', b.dataset.id===id); });
+    aggiornaInfoStampa();
+  }
+  else if(a==='new-svc') svcSheet(null);
+  else if(a==='edit-svc') svcSheet(state.services.filter(function(s){ return s.id===id; })[0]);
+  else if(a==='del-svc'){
+    var s2 = state.services.filter(function(x){ return x.id===id; })[0];
+    if(s2){ s2.deleted=true; s2.updatedAt=Date.now(); }
+    sk('services',state.services); render(); toast('Servizio eliminato.');
+  }
+
+  else if(a==='cloud-in') pwSheet();
+  else if(a==='cloud-out'){
+    if(confirm('Scollegare questo dispositivo? I dati restano salvati qui.')){ dropCloud(); render(); toast('Dispositivo scollegato.'); }
+  }
+  else if(a==='sync'){ syncNow(); toast('Sincronizzazione avviata…'); }
+  else if(a==='baks') baksSheet();
+  else if(a==='restore'){
+    if(confirm('Ripristinare questa copia? Sostituirà i dati sul cloud.')){
+      api('restore',{backupId:id}).then(function(){
+        closeSheet();
+        return api('load').then(function(b){
+          if(b.data){
+            state.clients=mg([],b.data.clients); state.visits=mg([],b.data.visits);
+            state.services=mg([],b.data.services); state.comments=mg([],b.data.comments);
+            state.posts=mg([],b.data.posts); state.staff=mg([],b.data.staff);
+            if(b.data.notepad) state.notepad=b.data.notepad;
+            persistAll();
+          }
+          render(); toast('Copia ripristinata.');
+        });
+      }).catch(function(){ toast('Ripristino non riuscito.'); });
+    }
+  }
+  else if(a==='export') exportBak();
+  else if(a==='import') document.getElementById('rf').click();
+  else if(a==='snap') snapRestore();
+});
+
+/* Digitazione: ricerche (ridisegno conservando il cursore) e blocco note (salvataggio ritardato). */
+var padTm;
+document.addEventListener('input', function(e){
+  if(e.target.id==='q-cli' || e.target.id==='q-vis'){
+    var w = e.target.id, pos = e.target.selectionStart;
+    if(w==='q-cli') state.qClient = e.target.value; else state.qVisit = e.target.value;
+    render();
+    var n = document.getElementById(w);
+    if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(x){} }
+  }
+  if(e.target.id==='pk-q'){
+    var lst = document.getElementById('pk-list');
+    if(lst) lst.innerHTML = pkItems(e.target.value);
+  }
+  if(e.target.id==='pr-da' || e.target.id==='pr-a'){ aggiornaInfoStampa(); }
+  if(e.target.id==='pad'){
+    var val = e.target.value;
+    clearTimeout(padTm);
+    padTm = setTimeout(function(){
+      state.notepad = {text:val, updatedAt:Date.now()};
+      sk('notepad', state.notepad);
+    }, 700);
+  }
+});
+document.addEventListener('change', function(e){
+  if(e.target.id==='rf' && e.target.files && e.target.files[0]) importBak(e.target.files[0]);
+});
+
+/* Allo scorrimento fa comparire il titolo compatto nella barra superiore. */
+function onScroll(){
+  var n = document.getElementById('navbar'), s = document.getElementById('sc');
+  n.classList.toggle('scrolled', s.scrollTop > 24);
+}
+document.getElementById('sc').addEventListener('scroll', onScroll, {passive:true});
+
+/* Scorrimento orizzontale per eliminare: decide subito se il gesto e' verticale
+   (scroll normale) oppure orizzontale, cosi' non ruba lo scorrimento della pagina. */
+(function(){
+  var row=null, x0=0, y0=0, dir=null;
+  var s = document.getElementById('sc');
+  s.addEventListener('touchstart', function(e){
+    var r = e.target.closest('[data-swipe]');
+    document.querySelectorAll('.row.op').forEach(function(o){ if(o!==r) o.classList.remove('op'); });
+    if(!r) return;
+    row=r; x0=e.touches[0].clientX; y0=e.touches[0].clientY; dir=null;
+  }, {passive:true});
+  s.addEventListener('touchmove', function(e){
+    if(!row) return;
+    var dx = e.touches[0].clientX-x0, dy = e.touches[0].clientY-y0;
+    if(!dir) dir = Math.abs(dx) > Math.abs(dy)+4 ? 'h' : 'v';
+    if(dir!=='h') return;
+    var c = row.querySelector('.row-in');
+    var base = row.classList.contains('op') ? -88 : 0;
+    var t = Math.max(-88, Math.min(0, base+dx));
+    row.classList.add('sliding');
+    c.style.transition='none'; c.style.transform='translateX('+t+'px)';
+  }, {passive:true});
+  s.addEventListener('touchend', function(e){
+    if(!row || dir!=='h'){ row=null; return; }
+    var c = row.querySelector('.row-in');
+    c.style.transition=''; c.style.transform='';
+    var dx = e.changedTouches[0].clientX-x0;
+    if(dx < -40) row.classList.add('op');
+    else if(dx > 25) row.classList.remove('op');
+    row.classList.remove('sliding');
+    row=null;
+  }, {passive:true});
+})();
+
+/* Gesto sul calendario: scorrimento orizzontale per cambiare mese.
+   Non entra in conflitto con lo swipe delle righe, che vive piu' in basso. */
+(function(){
+  var x0=null, y0=0, dir=null;
+  var sc = document.getElementById('sc');
+  sc.addEventListener('touchstart', function(e){
+    var cal = e.target.closest('.cal');
+    if(!cal){ x0=null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dir=null;
+  }, {passive:true});
+  sc.addEventListener('touchmove', function(e){
+    if(x0===null || dir) return;
+    var dx = e.touches[0].clientX-x0, dy = e.touches[0].clientY-y0;
+    if(Math.abs(dx) > Math.abs(dy)+6) dir='h';
+    else if(Math.abs(dy) > 6) dir='v';
+  }, {passive:true});
+  sc.addEventListener('touchend', function(e){
+    if(x0===null || dir!=='h'){ x0=null; return; }
+    var dx = e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx) > 45){
+      var p = state.calMonth.split('-');
+      var d = new Date(+p[0], +p[1]-1 + (dx<0?1:-1), 1);
+      state.calMonth = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      render();
+    }
+    x0=null;
+  }, {passive:true});
+})();
+
+/* Gesto sull'intestazione della giornata: scorrimento orizzontale per passare
+   al giorno precedente o successivo. Le righe hanno il proprio scorrimento,
+   quindi la zona attiva e' solo la fascia sopra la tabella. */
+(function(){
+  var x0=null, y0=0, dir=null;
+  var sc = document.getElementById('sc');
+  sc.addEventListener('touchstart', function(e){
+    if(!e.target.closest('[data-dayswipe]')){ x0=null; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dir=null;
+  }, {passive:true});
+  sc.addEventListener('touchmove', function(e){
+    if(x0===null || dir) return;
+    var dx = e.touches[0].clientX-x0, dy = e.touches[0].clientY-y0;
+    if(Math.abs(dx) > Math.abs(dy)+6) dir='h';
+    else if(Math.abs(dy) > 6) dir='v';
+  }, {passive:true});
+  sc.addEventListener('touchend', function(e){
+    if(x0===null || dir!=='h'){ x0=null; return; }
+    var dx = e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx) > 45){
+      state.pickDate = addDays(state.pickDate, dx<0 ? 1 : -1);
+      // Se il giorno esce dal mese mostrato, il calendario lo segue
+      if(ymOf(state.pickDate) !== state.calMonth) state.calMonth = ymOf(state.pickDate);
+      render();
+    }
+    x0=null;
+  }, {passive:true});
+})();
+
+/* Gesto dal bordo sinistro: torna alla schermata precedente, come su iOS. */
+(function(){
+  var x0=null, y0=0, attivo=false;
+  document.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    attivo = t.clientX < 26 && state.stack.length > 0 &&
+             !document.getElementById('sh').classList.contains('on');
+    if(attivo){ x0 = t.clientX; y0 = t.clientY; }
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(!attivo){ x0=null; return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = Math.abs(e.changedTouches[0].clientY - y0);
+    if(dx > 60 && dy < 60 && state.stack.length) pop();
+    attivo=false; x0=null;
+  }, {passive:true});
+})();
+
+/* Gesto sul pannello: trascinarlo verso il basso dalla maniglia lo chiude,
+   come nelle app di sistema. */
+(function(){
+  var y0=null, sheetEl=null;
+  document.addEventListener('touchstart', function(e){
+    var presa = e.target.closest('.gb, .sh-h');
+    if(!presa) return;
+    sheetEl = document.querySelector('#sh.on .sheet');
+    if(!sheetEl) return;
+    y0 = e.touches[0].clientY;
+    sheetEl.style.transition = 'none';
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(y0===null || !sheetEl) return;
+    var dy = e.touches[0].clientY - y0;
+    if(dy>0) sheetEl.style.transform = 'translateY('+dy+'px)';
+  }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if(y0===null || !sheetEl){ y0=null; return; }
+    var dy = e.changedTouches[0].clientY - y0;
+    sheetEl.style.transition = '';
+    sheetEl.style.transform = '';
+    if(dy > 90) closeSheet();
+    y0=null; sheetEl=null;
+  }, {passive:true});
+})();
+
+/* Trascinamento verso il basso a inizio pagina: avvia la sincronizzazione. */
+(function(){
+  var s=document.getElementById('sc'), p=document.getElementById('ptr'), st=null, pl=false;
+  s.addEventListener('touchstart', function(e){ st = s.scrollTop<=0 ? e.touches[0].clientY : null; pl=false; }, {passive:true});
+  s.addEventListener('touchmove', function(e){
+    if(st===null || s.scrollTop>0) return;
+    var dy = e.touches[0].clientY-st;
+    if(dy>0){ pl=true; p.style.transition='none'; p.style.height=Math.min(68,dy*0.5)+'px'; }
+  }, {passive:true});
+  s.addEventListener('touchend', function(){
+    if(!pl){ st=null; return; }
+    var h = parseFloat(p.style.height||'0');
+    p.style.transition='';
+    if(h>42 && cloudOn()){
+      p.classList.add('on'); p.style.height='50px';
+      Promise.resolve(syncNow()).then(function(){
+        setTimeout(function(){ p.classList.remove('on'); p.style.height='0px'; }, 320);
+      });
+    } else {
+      if(h>42 && !cloudOn()) toast('Cloud non collegato: vedi Impostazioni.');
+      p.style.height='0px';
+    }
+    st=null; pl=false;
+  }, {passive:true});
+})();
+
+/* Tasto Indietro di sistema: prima chiude il pannello, poi risale la pila di schermate. */
+window.addEventListener('popstate', function(){
+  if(document.getElementById('sh').classList.contains('on')){ closeSheet(); history.pushState(null,''); return; }
+  if(state.stack.length){ pop(); history.pushState(null,''); }
+});
+history.pushState(null,'');
+
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+
+
+/* ===== MODALITA' DIMOSTRATIVA =====
+   Presente solo nella build pubblica di portfolio. Popola l'archivio locale con
+   dati inventati, cosi' chi apre il link vede l'applicazione a regime invece di
+   una schermata vuota. Mettere DEMO = false per un'installazione reale. */
+var DEMO = true;
+
+function demoSeed(){
+  if(!DEMO) return;
+  if(localStorage.getItem(PX+'demo_v') === '1') return;
+
+  var NOMI = ['Giulia Marras','Elena Carta','Martina Pinna','Roberta Serra','Chiara Melis',
+              'Sara Loi','Valentina Deiana','Federica Sanna','Alessia Puddu','Ilaria Cocco',
+              'Marco Atzori','Luca Corda','Davide Manca','Simone Fadda','Nicola Piras',
+              'Antonella Usai','Paola Lai','Silvia Murgia'];
+  var NOTE  = ['Preferisce le prese del mattino.','Capello fine, evitare prodotti pesanti.',
+               'Viene sempre con la figlia.','Vuole mantenere la lunghezza.',
+               'Chiede spesso consigli sui prodotti.','',''];
+  var ALLE  = ['Sensibilita’ all’ammoniaca','','','Cute reattiva, patch test fatto','','',''];
+  var REF   = ['Passaparola','Instagram','Passa dal negozio','Amica di Giulia','',''];
+
+  function rnd(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function tel(){ return '3' + (Math.floor(Math.random()*3)+2) + Math.floor(1000000 + Math.random()*8999999); }
+  function ago(days){ return addDays(today(), -days); }
+
+  var now = Date.now(), giorno = 86400000;
+
+  var staff = [
+    {id:'stf-demo-1', name:'Francesca', role:'colorista',  color:'#D24C93', createdAt:now, updatedAt:now},
+    {id:'stf-demo-2', name:'Marta',     role:'stylist',    color:'#5AA7E1', createdAt:now, updatedAt:now},
+    {id:'stf-demo-3', name:'Giorgia',   role:'assistente', color:'#5AE1A7', createdAt:now, updatedAt:now}
+  ];
+
+  var clients = NOMI.map(function(n, i){
+    var creato = now - (30 + Math.floor(Math.random()*700)) * giorno;
+    return {
+      id:'cli-demo-'+i, name:n, phone:tel(),
+      email: Math.random() < 0.45 ? n.toLowerCase().replace(/ /g,'.')+'@example.com' : '',
+      birthday: Math.random() < 0.6
+        ? (1965 + Math.floor(Math.random()*40)) + '-' +
+          String(1+Math.floor(Math.random()*12)).padStart(2,'0') + '-' +
+          String(1+Math.floor(Math.random()*28)).padStart(2,'0')
+        : '',
+      sesso: (i >= 10 && i <= 14) ? 'm' : 'f',
+      referral: rnd(REF), notes: rnd(NOTE), allergies: rnd(ALLE),
+      createdAt: creato, updatedAt: creato
+    };
+  });
+
+  // Il listino non e' assegnato a caso: un "Taglio Donna" su un cliente uomo
+  // e' il genere di dettaglio che a un parrucchiere salta subito all'occhio.
+  var SVC_F = ['Taglio Donna','Piega','Colore','Permanente riccia','Stiratura / liscio',
+               'Trattamento ristrutturante','Shampoo e finish'];
+  var SVC_M = ['Taglio Uomo','Barba','Shampoo e finish','Trattamento ristrutturante'];
+  var SVC_K = ['Taglio Bambino','Shampoo e finish'];
+  function listinoPer(c){
+    if(c.sesso === 'm') return SVC_M;
+    return Math.random() < 0.12 ? SVC_K : SVC_F;   // qualche taglio bambino accompagnato
+  }
+  var COLORI = ['biondo cenere','castano cioccolato','rosso rame','biondo miele','nocciola','platino'];
+  var MARCHE = ['Wella','L’Oréal','Schwarzkopf','Kadus'];
+  var GRADI  = ['7.3','6.0','8.1','5.4','9.13','6.66'];
+
+  var visits = [];
+  clients.forEach(function(c, ci){
+    var quante = 2 + Math.floor(Math.random()*6);
+    for(var k = 0; k < quante; k++){
+      var d = ago(1 + Math.floor(Math.random()*6) + k*36 + Math.floor(Math.random()*16));
+      var svc = rnd(listinoPer(c));
+      var colora = (svc === 'Colore');
+      visits.push({
+        id:'vis-demo-'+ci+'-'+k, clientId:c.id, date:d, service:svc,
+        staffId: rnd(staff).id, stylist:'',
+        color:  colora ? rnd(COLORI) : '',
+        brand:  colora ? rnd(MARCHE) : '',
+        shade:  colora ? rnd(GRADI)  : '',
+        oxy:    colora ? rnd(['10','20','30']) : '',
+        posa:   colora ? rnd(['30','35','40']) : '',
+        note:   Math.random() < 0.25 ? 'Molto soddisfatta del risultato.' : '',
+        createdAt: now, updatedAt: now
+      });
+    }
+  });
+
+  // Alcune visite nel mese in corso, cosi' la dashboard non mostra mai zero.
+  var primo = today().slice(0,8) + '01';
+  var oggiG = parseInt(today().slice(8,10), 10);
+  for(var q = 0; q < 7; q++){
+    var giornoMese = 1 + Math.floor(Math.random() * oggiG);
+    var cq = rnd(clients);
+    var svcq = rnd(listinoPer(cq)), colq = (svcq === 'Colore');
+    visits.push({
+      id:'vis-demo-m-'+q, clientId: cq.id,
+      date: today().slice(0,8) + String(giornoMese).padStart(2,'0'),
+      service: svcq, staffId: rnd(staff).id, stylist:'',
+      color: colq ? rnd(COLORI) : '', brand: colq ? rnd(MARCHE) : '',
+      shade: colq ? rnd(GRADI) : '', oxy: colq ? '20' : '', posa: colq ? '35' : '',
+      note:'', createdAt: now, updatedAt: now
+    });
+  }
+
+  var ORE = ['09:00','09:30','10:00','10:30','11:15','12:00','15:00','15:30','16:00','16:45','17:30','18:00'];
+  var LAVORI = ['Taglio e piega','Colore radici','Colpi di sole','Piega','Taglio uomo',
+                'Trattamento ristrutturante','Stiratura','Taglio bambino','Shampoo e finish'];
+  var posts = [];
+  for(var g = -3; g <= 9; g++){
+    var data = addDays(today(), g);
+    var wd = new Date(data+'T00:00:00').getDay();
+    if(wd === 0 || wd === 1) continue;              // salone chiuso domenica e lunedi'
+    var quanti = 3 + Math.floor(Math.random()*4);
+    var ore = ORE.slice().sort(function(){ return Math.random()-0.5; }).slice(0, quanti).sort();
+    ore.forEach(function(h, j){
+      var c = rnd(clients);
+      posts.push({
+        id:'pst-demo-'+g+'-'+j, date:data, time:h,
+        text: rnd(LAVORI) + ' — ' + c.name.split(' ')[0],
+        clientId:c.id, staffId: rnd(staff).id,
+        createdAt: now, updatedAt: now, history: []
+      });
+    });
+  }
+
+  var comments = [
+    {id:'cmt-demo-1', clientId:clients[0].id, text:'Ha chiesto un preventivo per il matrimonio di giugno.', createdAt:now - 12*giorno, updatedAt:now - 12*giorno},
+    {id:'cmt-demo-2', clientId:clients[3].id, text:'Non gradisce il fon troppo caldo.',                     createdAt:now - 40*giorno, updatedAt:now - 40*giorno},
+    {id:'cmt-demo-3', clientId:clients[6].id, text:'Vuole provare il taglio corto la prossima volta.',       createdAt:now - 5*giorno,  updatedAt:now - 5*giorno}
+  ];
+
+  var notepad = {text:'Ordinare tinta 7.3 — scorta quasi finita.\nChiamare il fornitore per le spazzole nuove.', updatedAt:now};
+
+  try{
+    localStorage.setItem(PX+'staff',    JSON.stringify(staff));
+    localStorage.setItem(PX+'clients',  JSON.stringify(clients));
+    localStorage.setItem(PX+'visits',   JSON.stringify(visits));
+    localStorage.setItem(PX+'posts',    JSON.stringify(posts));
+    localStorage.setItem(PX+'comments', JSON.stringify(comments));
+    localStorage.setItem(PX+'notepad',  JSON.stringify(notepad));
+    localStorage.setItem(PX+'asked','1');            // niente richiesta del codice cloud nella demo
+    localStorage.setItem(PX+'demo_v','1');
+  }catch(e){}
+}
+
+function demoReset(){
+  try{
+    Object.keys(localStorage).forEach(function(k){ if(k.indexOf(PX)===0) localStorage.removeItem(k); });
+  }catch(e){}
+  location.reload();
+}
+
+function demoChrome(){
+  if(!DEMO) return;
+
+  document.body.classList.add('demo');
+
+  var pill = document.createElement('div');
+  pill.id = 'demo-pill';
+  pill.innerHTML = '<span>DEMO</span><button type="button" id="demo-rst" title="Reimposta i dati dimostrativi" aria-label="Reimposta i dati dimostrativi">&#8635;</button>';
+  document.body.appendChild(pill);
+  document.getElementById('demo-rst').addEventListener('click', demoReset);
+
+  if(localStorage.getItem(PX+'demo_seen') === '1') return;
+  var ov = document.createElement('div');
+  ov.id = 'demo-intro';
+  ov.innerHTML =
+    '<div class="box" role="dialog" aria-modal="true" aria-labelledby="demo-h">' +
+      '<h2 id="demo-h">Versione dimostrativa</h2>' +
+      '<p>Questo è il registro clienti di un parrucchiere, costruito su commissione e qui riproposto con <strong>dati completamente inventati</strong>. Nessuna persona reale compare in questa pagina.</p>' +
+      '<p>Puoi aggiungere, modificare ed eliminare liberamente: tutto resta nel tuo browser e si azzera con « Reimposta ».</p>' +
+      '<button class="go" type="button" id="demo-go">Entra nella demo</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+  document.getElementById('demo-go').addEventListener('click', function(){
+    try{ localStorage.setItem(PX+'demo_seen','1'); }catch(e){}
+    ov.remove();
+  });
+}
+
+demoSeed();
+
+/* ===== Avvio =====
+   Carica l'archivio locale, prepara il listino al primo uso, congela la copia
+   del giorno, disegna l'app e infine sincronizza (o chiede il codice). */
+(function(){
+  state.clients  = lk('clients',[]);
+  state.visits   = lk('visits',[]);
+  state.comments = lk('comments',[]);
+  state.posts    = lk('posts',[]);
+  state.staff    = lk('staff',[]);
+  state.notepad  = lk('notepad',{text:'',updatedAt:0});
+  var s = lk('services',null);
+  if(!s){ s = DEFAULT_SERVICES.map(function(x){ return Object.assign({},x); }); sk('services',s); }
+  state.services = s;
+  state.calMonth = ymOf(today());
+  state.pickDate = today();
+
+  snapDaily();
+  render();
+
+  if(cloudOn()) syncNow();
+  else if(!localStorage.getItem(PX+'asked')){
+    localStorage.setItem(PX+'asked','1');
+    setTimeout(function(){ pwSheet(); }, 900);
+  }
+
+  demoChrome();
+})();
+</script>
+</body>
+</html>
