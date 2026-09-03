@@ -10,7 +10,7 @@ A client register and appointment book built on commission for a hair salon, and
 
 ## The problem
 
-A small salon kept its client history on paper: colour formulas, developer volume, processing time, allergies, who did the job. Finding "what did we use on her last March?" meant leafing through a binder while the client waited. Off-the-shelf booking platforms charged a monthly fee plus commission and pushed the salon's own returning clients through a marketplace.
+For sixteen years the salon kept its client history on paper: colour formulas, developer volume, processing time, allergies, who did the job, spread across binders and appointment books. Finding "what did we use on her last March?" meant leafing through one of them while the client waited. Off-the-shelf booking platforms charged a monthly fee plus commission and pushed the salon's own returning clients through a marketplace.
 
 The brief was narrow: it had to work on one phone, in a basement with poor reception, without a login every morning, and it had to be readable by someone who does not use computers for a living.
 
@@ -33,9 +33,9 @@ Plain HTML, CSS and JavaScript in a single file. No framework, no build step, no
 
 **Conflict resolution.** Records merge field-by-field on `updatedAt`, last write wins. Deletions are tombstones (`deleted: true`) so they propagate like any other change instead of resurrecting on the next sync.
 
-**Guards that matter more than features.** The interesting part of this project was not the CRUD:
+**Guards that matter more than features.** The owner is working through sixteen years of binders and typing that history into the app by hand. That changes what a bug costs: the expensive failure here is not a broken screen, it is silently losing work that took months to enter and cannot be re-created.
 
-- *Anti-wipe guard* — a save that would shrink the live record count by more than half is rejected with HTTP 409 rather than committing. One bad sync from a half-loaded device should not erase two years of client history.
+- *Anti-wipe guard* — a save that would shrink the live record count by more than half is rejected with HTTP 409 rather than committing. One bad sync from a half-loaded device should not erase months of manual data entry.
 - *Rotating backups* — every write archives the previous state, keeping the last ten.
 - *Pending-write flag* — survives app closure, so a phone that goes offline overnight still knows it owes the cloud an update.
 - *Request timeouts* — `AbortController` plus a race, because on a weak connection a `fetch` can hang forever and silently freeze sync.
@@ -82,7 +82,7 @@ APP_PASSWORD
 
 ## Notes and limitations
 
-- The UI is in Italian: it was written for one salon, not for an international market.
+- The UI ships in Italian and English (switchable in Settings); it was written for one salon, not built as a multi-locale product.
 - A shared passphrase is the right amount of security for one owner and one device. It would not be for a multi-tenant product.
 - Google Drive as a datastore is a deliberate trade: zero running cost and the owner keeps her own data, at the price of no queries and no concurrent writers.
 
