@@ -2,7 +2,7 @@
 
 A client register and appointment book built on commission for a hair salon, and used daily by its owner. It runs as an installable PWA on a phone, works with no connection at all, and syncs across devices through a serverless function.
 
-**[▶ Live demo](#)** — seeded with entirely fictional data. **[Screenshots](#screenshots)**
+**[▶ Live demo](https://offline-first-salon-crm.netlify.app/)** — seeded with entirely fictional data. **[Screenshots](#screenshots)**
 
 > This repository is a rebranded, demo-seeded copy of a delivered project. The client's branding and every real client record have been removed: all names, phone numbers and appointments you see are invented.
 
