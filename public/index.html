@@ -558,12 +558,364 @@ var IC = {
 };
 
 var TABS = [
-  {id:'agenda', label:'Agenda', ic:'agenda'},
-  {id:'clients', label:'Clienti', ic:'clients'},
-  {id:'dash', label:'Dashboard', ic:'dash'},
-  {id:'visits', label:'Storico', ic:'visits'},
-  {id:'settings', label:'Impostazioni', ic:'settings'}
+  {id:'agenda', ic:'agenda'},
+  {id:'clients', ic:'clients'},
+  {id:'dash', ic:'dash'},
+  {id:'visits', ic:'visits'},
+  {id:'settings', ic:'settings'}
 ];
+
+/* ===== Lingua dell'interfaccia (solo UI: dati e contenuti demo restano come inseriti) ===== */
+var LANG = 'it';
+try{ LANG = localStorage.getItem(PX+'lang') || 'it'; }catch(e){}
+function setLang(l){
+  LANG = (l==='en') ? 'en' : 'it';
+  try{ localStorage.setItem(PX+'lang', LANG); }catch(e){}
+  document.documentElement.lang = LANG;
+  render();
+}
+/* Locale usato per le date: stile UK (giorno-mese-anno, 24h) quando l'interfaccia e' in inglese. */
+function loc(){ return LANG==='en' ? 'en-GB' : 'it-IT'; }
+var DOW = {
+  it:['lun','mar','mer','gio','ven','sab','dom'],
+  en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+};
+/* Nomi inglesi dei colori della palette (la struttura PALETTE resta in italiano per il lookup). */
+var COLOR_EN = {
+  'Rosso chiaro':'Light red','Corallo chiaro':'Light coral','Ambra chiaro':'Light amber','Lime chiaro':'Light lime',
+  'Verde chiaro':'Light green','Smeraldo chiaro':'Light emerald','Acquamarina chiaro':'Light aquamarine','Turchese chiaro':'Light turquoise',
+  'Azzurro chiaro':'Light sky blue','Blu chiaro':'Light blue','Indaco chiaro':'Light indigo','Viola chiaro':'Light purple',
+  'Magenta chiaro':'Light magenta','Rosa chiaro':'Light pink',
+  'Rosso':'Red','Corallo':'Coral','Ambra':'Amber','Lime':'Lime','Verde':'Green','Smeraldo':'Emerald',
+  'Acquamarina':'Aquamarine','Turchese':'Turquoise','Azzurro':'Sky blue','Blu':'Blue','Indaco':'Indigo',
+  'Viola':'Purple','Magenta':'Magenta','Rosa':'Pink',
+  'Rosso intenso':'Vivid red','Corallo intenso':'Vivid coral','Ambra intenso':'Vivid amber','Lime intenso':'Vivid lime',
+  'Verde intenso':'Vivid green','Smeraldo intenso':'Vivid emerald','Acquamarina intenso':'Vivid aquamarine','Turchese intenso':'Vivid turquoise',
+  'Azzurro intenso':'Vivid sky blue','Blu intenso':'Vivid blue','Indaco intenso':'Vivid indigo','Viola intenso':'Vivid purple',
+  'Magenta intenso':'Vivid magenta','Rosa intenso':'Vivid pink',
+  'Rosso scuro':'Dark red','Corallo scuro':'Dark coral','Ambra scuro':'Dark amber','Lime scuro':'Dark lime',
+  'Verde scuro':'Dark green','Smeraldo scuro':'Dark emerald','Acquamarina scuro':'Dark aquamarine','Turchese scuro':'Dark turquoise',
+  'Azzurro scuro':'Dark sky blue','Blu scuro':'Dark blue','Indaco scuro':'Dark indigo','Viola scuro':'Dark purple',
+  'Magenta scuro':'Dark magenta','Rosa scuro':'Dark pink',
+  'Rosso profondo':'Deep red','Corallo profondo':'Deep coral','Ambra profondo':'Deep amber','Lime profondo':'Deep lime',
+  'Verde profondo':'Deep green','Smeraldo profondo':'Deep emerald','Acquamarina profondo':'Deep aquamarine','Turchese profondo':'Deep turquoise',
+  'Azzurro profondo':'Deep sky blue','Blu profondo':'Deep blue','Indaco profondo':'Deep indigo','Viola profondo':'Deep purple',
+  'Magenta profondo':'Deep magenta','Rosa profondo':'Deep pink',
+  'Bianco':'White','Perla':'Pearl','Cenere':'Ash','Tortora':'Taupe','Grigio':'Grey','Ardesia':'Slate','Antracite':'Charcoal','Nero':'Black',
+  'Personalizzato':'Custom'
+};
+
+var I18N = {
+  it:{
+    tab_agenda:'Agenda', tab_clients:'Clienti', tab_dash:'Dashboard', tab_visits:'Storico', tab_settings:'Impostazioni',
+    nb_back:'Indietro', nb_add:'Aggiungi', nb_new:'Nuovo', nb_newf:'Nuova', nb_edit:'Modifica',
+    sheet_close:'Chiudi', sheet_cancel:'Annulla', sheet_save:'Salva', nb_print:'Stampa',
+    del_label:'Elimina',
+    ag_today_prefix:'Oggi · ', ag_swipe_hint:'‹ scorri ›',
+    tbl_time:'Orario', tbl_type:'Tipo di lavoro', tbl_staff:'Staff',
+    ag_empty:'Nessun appuntamento per questa giornata.', ag_add_appt:'+ Aggiungi appuntamento',
+    ag_print_btn:'Stampa agenda',
+    ag_gf_rows:'Le righe sono ordinate per operatore e colorate con il suo colore. ',
+    ag_gf_staff:'Aggiungi lo staff dalle Impostazioni per assegnare gli impegni. ',
+    ag_gf_date:'Ogni appuntamento resta datato con il giorno e l’ora in cui l’hai scritto.',
+    cal_today:'Oggi',
+    hist_one:' modifica', hist_many:' modifiche',
+    cli_title:'Clienti', cli_sub_suffix:' in archivio', cli_new:'Nuovo',
+    cli_search_ph:'Cerca nome o telefono',
+    cli_no_results:'Nessun risultato.', cli_no_clients_yet:'Nessun cliente ancora.', cli_add_first:'Aggiungi il primo cliente',
+    cli_no_visit:'nessuna visita', cli_today:'oggi', cli_days_suffix:'g',
+    client_title_fallback:'Scheda', client_edit:'Modifica', client_not_found:'Scheda non trovata.',
+    client_visits_suffix:' visite', client_call:'Chiama', client_whatsapp:'WhatsApp',
+    client_data_gt:'Dati', client_phone:'Telefono', client_email:'Email', client_birthday:'Compleanno',
+    client_referral:'Conosciuta tramite', client_call_rv:'Chiama',
+    client_allergies_gt:'Allergie / attenzioni', client_notes_gt:'Note',
+    client_visits_history_gt:'Storico visite (', client_no_visits:'Nessuna visita registrata. Puoi aggiungere anche visite passate.',
+    client_add_visit:'+ Aggiungi visita', client_diary_gt:'Diario (',
+    client_note_ph:'Scrivi un appunto su questa cliente…', client_add_note_btn:'Aggiungi appunto',
+    client_edited_suffix:' · modificato',
+    client_diary_gf:'Scorri un appunto verso sinistra per eliminarlo. Tocca per modificarlo.',
+    client_delete:'Elimina cliente',
+    visit_color_prefix:'Colore: ', visit_formula_prefix:'Formula: ',
+    dash_title:'Dashboard', dash_sub:'Andamento del salone',
+    dash_clients:'Clienti', dash_visits_month:'Visite<br>questo mese', dash_notes_month:'Appunti<br>questo mese',
+    dash_visits_per_month_gt:'Visite per mese', dash_top_services_gt:'Servizi più richiesti',
+    dash_away_gt:'Non si vedono da un po’', dash_away_last_visit_prefix:'ultima visita ',
+    dash_away_gf:'Clienti che non passano da più di 60 giorni.', dash_notepad_gt:'Blocco note',
+    visits_title:'Storico', visits_sub_suffix:' visite registrate', visits_new:'Nuova',
+    visits_search_ph:'Cerca per cliente', visits_client_deleted:'Cliente eliminato',
+    visits_no_results:'Nessun risultato.', visits_no_visits:'Nessuna visita registrata.',
+    settings_title:'Impostazioni', settings_cloud_gt:'Cloud del salone',
+    settings_sync_now:'Sincronizza adesso', settings_reenter_code:'Reinserisci codice di accesso',
+    settings_cloud_backups:'Copie di riserva sul cloud', settings_disconnect:'Scollega questo dispositivo',
+    settings_enter_code:'Inserisci codice di accesso',
+    settings_cloud_gf_on:'Ogni modifica viene salvata e condivisa con gli altri dispositivi collegati.',
+    settings_cloud_gf_off:'Con il codice di accesso i dati si sincronizzano fra tutti i dispositivi del salone. Va inserito una sola volta per dispositivo.',
+    settings_manage_gt:'Gestione', settings_staff_rt:'Staff', settings_staff_rs:'Operatori e colori dell’agenda',
+    settings_services_rt:'Listino servizi',
+    settings_install_gt:'Installazione',
+    settings_iphone_rt:'iPhone / iPad', settings_iphone_rs:'Safari → Condividi → Aggiungi a Home',
+    settings_android_rt:'Android', settings_android_rs:'Chrome → menu ⋮ → Installa app',
+    settings_computer_rt:'Computer', settings_computer_rs:'Chrome/Edge → icona installa nella barra indirizzi',
+    settings_add_device_gt:'Aggiungi un altro dispositivo', settings_qr_alt:'Codice QR per aprire l’app',
+    settings_qr_gf:'Inquadra il codice con la fotocamera per aprire l’app su un altro telefono o tablet. Serve comunque il codice di accesso per vedere i dati.',
+    settings_backup_gt:'Copia di sicurezza', settings_download_backup:'Scarica backup (.json)',
+    settings_restore_file:'Ripristina da file', settings_restore_local:'Ripristina copia locale',
+    settings_last_backup_prefix:'Ultimo backup scaricato: ', settings_never:'mai',
+    settings_footer:'Salon CRM · Demo &mdash; tutti i dati sono fittizi.<br>I dati restano salvati anche su questo dispositivo.',
+    settings_lang_gt:'Lingua', lang_it:'Italiano', lang_en:'English',
+    staff_title:'Staff', staff_new:'Nuovo',
+    staff_empty:'Nessun membro dello staff.<br>Aggiungendoli potrai assegnare a ciascuno un colore e vedere l’agenda divisa per operatore.',
+    staff_add_first:'Aggiungi il primo',
+    staff_gf:'Tocca un nome per vedere il suo riepilogo. Il colore distingue gli impegni nell’agenda.',
+    staffcard_title_fallback:'Operatore', staffcard_edit:'Modifica', staffcard_not_found:'Operatore non trovato.',
+    staffcard_total_visits:'Visite<br>totali', staffcard_month_visits:'Visite<br>questo mese', staffcard_month_tasks:'Impegni<br>questo mese',
+    staffcard_services_gt:'Servizi eseguiti', staffcard_visits_gt:'Visite svolte (',
+    staffcard_no_visits:'Nessuna visita ancora assegnata.', staffcard_client_deleted:'Cliente eliminato',
+    staffcard_more_recent_gf:'Mostrate le 25 più recenti.', staffcard_remove:'Rimuovi dallo staff',
+    staffcard_remove_gf:'Le visite e gli impegni già registrati restano, perdono solo il collegamento.',
+    services_title:'Listino servizi', services_new:'Nuovo', services_empty:'Nessun servizio a listino.',
+    services_add:'Aggiungi servizio', services_gf:'Scorri verso sinistra per eliminare. Tocca per modificare.',
+    ops_none:'Nessuno',
+    pk_change:'Cambia', pk_search_ph:'Cerca cliente per nome o telefono',
+    pk_hint_optional:'Facoltativo: lascia vuoto per un impegno non legato a un cliente.',
+    pk_no_results:'Nessun cliente trovato.', pk_no_clients:'Nessun cliente in archivio.', pk_last_visit_prefix:'ultima visita ',
+    client_form_title_edit:'Modifica cliente', client_form_title_new:'Nuovo cliente',
+    client_form_name:'Nome e cognome', client_form_name_ph:'Es. Maria Rossi',
+    client_form_phone:'Telefono', client_form_phone_ph:'333 1234567',
+    client_form_email:'Email', client_form_email_ph:'opzionale',
+    client_form_birthday:'Compleanno', client_form_referral:'Conosciuta tramite', client_form_referral_ph:'Passaparola…',
+    client_form_allergies:'Allergie / attenzioni', client_form_allergies_ph:'Es. sensibilità all’ammoniaca',
+    client_form_notes:'Note', client_form_notes_ph:'Preferenze, tipo di capello…',
+    toast_name_required:'Inserisci almeno il nome.',
+    visit_add_client_first:'Aggiungi prima un cliente.', visit_select_option:'— seleziona —',
+    visit_form_title_edit:'Modifica visita', visit_form_title_new:'Nuova visita',
+    visit_form_client:'Cliente', visit_form_date:'Data', visit_form_service:'Servizio',
+    visit_form_who:'Chi taglia i capelli?', visit_form_who_ph:'Nome di chi ha lavorato',
+    visit_form_who_hint:'Aggiungi lo staff dalle Impostazioni per scegliere con un tocco.',
+    visit_form_color:'Colore usato', visit_form_color_ph:'Es. biondo cenere, rosso rame…',
+    visit_form_brand:'Marca', visit_form_brand_ph:'Es. Wella',
+    visit_form_shade:'Codice tinta', visit_form_shade_ph:'Es. 7.3',
+    visit_form_oxy:'Ossigeno (vol)', visit_form_posa:'Posa (min)',
+    visit_form_note:'Nota', visit_form_note_ph:'Dettagli particolari…',
+    toast_select_client:'Seleziona un cliente.', toast_select_service:'Seleziona un servizio.',
+    post_form_title_edit:'Modifica appuntamento', post_form_title_new:'Nuovo appuntamento',
+    post_form_day:'Giornata', post_form_time:'Ora (facoltativa)',
+    post_form_task:'Impegno', post_form_task_ph:'Es. Colore e piega. Oppure: ordinare tinte, chiamare fornitore…',
+    post_form_who:'Chi se ne occupa', post_form_link_client:'Collega a un cliente',
+    post_form_edited_one:'Appuntamento modificato ', post_form_edited_one_suffix:' volta. La cronologia resta salvata.',
+    post_form_edited_many_suffix:' volte. La cronologia resta salvata.',
+    toast_write_appointment:'Scrivi il testo dell’appuntamento.',
+    hist_title:'Cronologia modifiche', hist_current:'Versione attuale',
+    staff_form_title_edit:'Modifica membro', staff_form_title_new:'Nuovo membro',
+    staff_form_name:'Nome', staff_form_name_ph:'Es. Francesca',
+    staff_form_role:'Ruolo (facoltativo)', staff_form_role_ph:'Es. colorista',
+    staff_form_color:'Colore nell’agenda', toast_enter_name:'Inserisci il nome.',
+    svc_form_title_edit:'Modifica servizio', svc_form_title_new:'Nuovo servizio',
+    svc_form_name:'Nome servizio', svc_form_name_ph:'Es. Balayage',
+    svc_form_category:'Categoria', svc_form_category_ph:'Es. Colore',
+    svc_form_duration:'Durata (min)', svc_form_price:'Prezzo (€)',
+    note_form_title:'Modifica appunto', toast_cannot_be_empty:'Non può essere vuoto.',
+    pw_title:'Cloud del salone', pw_code_label:'Codice di accesso', pw_code_ph:'Inserisci il codice',
+    pw_hint_default:'Con il codice, i dati si sincronizzano fra tutti i dispositivi del salone. Se la sincronizzazione si e’ interrotta, reinserirlo qui ripristina subito il collegamento.',
+    toast_enter_code:'Inserisci il codice.', toast_connected:'Collegato al cloud.',
+    pw_err_wrong:'Codice non corretto. Riprova.', toast_cloud_unreachable:'Cloud non raggiungibile: i dati restano salvati qui.',
+    baks_title:'Copie di riserva', baks_loading:'Caricamento…', baks_restore:'Ripristina',
+    baks_gf:'Il ripristino sostituisce i dati sul cloud con quelli della copia scelta.',
+    baks_none:'Nessuna copia ancora. Vengono create automaticamente a ogni salvataggio.',
+    baks_error:'Impossibile caricare le copie.',
+    print_title:'Stampa agenda', print_quick_label:'Scelte rapide',
+    print_preset_today:'Solo questa giornata', print_preset_week:'Questa settimana',
+    print_preset_7days:'Prossimi 7 giorni', print_preset_month:'Tutto il mese',
+    print_from:'Dal giorno', print_to:'Al giorno',
+    print_day_one:' giornata', print_day_many:' giornate', print_with_appts:' con impegni · ',
+    print_row_one:' riga', print_row_many:' righe', print_total_suffix:' in totale',
+    print_footer_item_one:' impegno', print_footer_item_many:' impegni',
+    print_info_none:'Nessun impegno nel periodo scelto.',
+    print_footer_printed:' · stampato il ', toast_print_none:'Nessun impegno da stampare nel periodo scelto.',
+    sync_off:'Cloud non collegato', sync_syncing:'Sincronizzazione…',
+    sync_offline_pending:'Senza rete · modifiche salvate qui, verranno inviate da sole',
+    sync_offline:'Senza rete · i dati restano salvati qui',
+    sync_error:'Cloud non raggiungibile · riprovo da solo', sync_pending:'Modifiche da inviare…',
+    sync_synced:'Sincronizzato',
+    toast_storage_full:'Memoria del dispositivo piena.', toast_no_phone:'Numero non disponibile.',
+    toast_cloud_settings_hint:'Cloud non collegato: vedi Impostazioni.',
+    confirm_delete_client:'Eliminare questa scheda cliente?',
+    confirm_remove_staff:'Rimuovere questo operatore? Visite e impegni gia’ registrati restano.',
+    confirm_disconnect:'Scollegare questo dispositivo? I dati restano salvati qui.',
+    confirm_shrink:'Questo salvataggio ridurrebbe molto i dati sul cloud (può capitare se il dispositivo non era aggiornato).\n\nForzare il salvataggio? Annulla = mantieni i dati del cloud.',
+    confirm_restore_cloud:'Ripristinare questa copia? Sostituirà i dati sul cloud.',
+    confirm_restore_local_prefix:'Ripristinare la copia locale del ', confirm_restore_local_suffix:'? Sostituirà i dati su questo dispositivo.',
+    confirm_restore_file:'Il backup sostituirà i dati su questo dispositivo. Continuare?',
+    toast_restored_from_cloud:'Ripristinati i dati dal cloud.', toast_appt_deleted:'Appuntamento eliminato.',
+    toast_client_deleted:'Cliente eliminato.', toast_visit_deleted:'Visita eliminata.',
+    toast_write_note_first:'Scrivi prima l’appunto.', toast_staff_removed:'Operatore rimosso.',
+    toast_service_deleted:'Servizio eliminato.', toast_device_disconnected:'Dispositivo scollegato.',
+    toast_sync_started:'Sincronizzazione avviata…', toast_restore_failed:'Ripristino non riuscito.',
+    toast_no_local_backup:'Nessuna copia locale.', toast_backup_unreadable:'Copia non leggibile.',
+    toast_local_restored:'Copia locale ripristinata.', toast_backup_downloaded:'Backup scaricato.',
+    toast_backup_restored:'Backup ripristinato.', toast_invalid_file:'File non valido.',
+    toast_file_unreadable:'Impossibile leggere il file.', toast_cloud_restored:'Copia ripristinata.',
+    demo_title:'Versione dimostrativa',
+    demo_p1:'Questo è il registro clienti di un parrucchiere, costruito su commissione e qui riproposto con <strong>dati completamente inventati</strong>. Nessuna persona reale compare in questa pagina.',
+    demo_p2:'Puoi aggiungere, modificare ed eliminare liberamente: tutto resta nel tuo browser e si azzera con « Reimposta ».',
+    demo_go:'Entra nella demo', demo_reset_title:'Reimposta i dati dimostrativi'
+  },
+  en:{
+    tab_agenda:'Agenda', tab_clients:'Clients', tab_dash:'Dashboard', tab_visits:'History', tab_settings:'Settings',
+    nb_back:'Back', nb_add:'Add', nb_new:'New', nb_newf:'New', nb_edit:'Edit',
+    sheet_close:'Close', sheet_cancel:'Cancel', sheet_save:'Save', nb_print:'Print',
+    del_label:'Delete',
+    ag_today_prefix:'Today · ', ag_swipe_hint:'‹ swipe ›',
+    tbl_time:'Time', tbl_type:'Type of work', tbl_staff:'Staff',
+    ag_empty:'No appointments for this day.', ag_add_appt:'+ Add appointment',
+    ag_print_btn:'Print agenda',
+    ag_gf_rows:'Rows are sorted by staff member and coloured with their colour. ',
+    ag_gf_staff:'Add staff from Settings to assign appointments. ',
+    ag_gf_date:'Every appointment keeps the date and time it was written.',
+    cal_today:'Today',
+    hist_one:' edit', hist_many:' edits',
+    cli_title:'Clients', cli_sub_suffix:' on file', cli_new:'New',
+    cli_search_ph:'Search name or phone',
+    cli_no_results:'No results.', cli_no_clients_yet:'No clients yet.', cli_add_first:'Add the first client',
+    cli_no_visit:'no visits', cli_today:'today', cli_days_suffix:'d',
+    client_title_fallback:'Record', client_edit:'Edit', client_not_found:'Record not found.',
+    client_visits_suffix:' visits', client_call:'Call', client_whatsapp:'WhatsApp',
+    client_data_gt:'Details', client_phone:'Phone', client_email:'Email', client_birthday:'Birthday',
+    client_referral:'Found us via', client_call_rv:'Call',
+    client_allergies_gt:'Allergies / notes', client_notes_gt:'Notes',
+    client_visits_history_gt:'Visit history (', client_no_visits:'No visits recorded yet. You can add past visits too.',
+    client_add_visit:'+ Add visit', client_diary_gt:'Diary (',
+    client_note_ph:'Write a note about this client…', client_add_note_btn:'Add note',
+    client_edited_suffix:' · edited',
+    client_diary_gf:'Swipe a note left to delete it. Tap to edit it.',
+    client_delete:'Delete client',
+    visit_color_prefix:'Colour: ', visit_formula_prefix:'Formula: ',
+    dash_title:'Dashboard', dash_sub:'Salon overview',
+    dash_clients:'Clients', dash_visits_month:'Visits<br>this month', dash_notes_month:'Notes<br>this month',
+    dash_visits_per_month_gt:'Visits per month', dash_top_services_gt:'Most requested services',
+    dash_away_gt:'Haven’t been in for a while', dash_away_last_visit_prefix:'last visit ',
+    dash_away_gf:'Clients who haven’t been in for more than 60 days.', dash_notepad_gt:'Notepad',
+    visits_title:'History', visits_sub_suffix:' visits recorded', visits_new:'New',
+    visits_search_ph:'Search by client', visits_client_deleted:'Deleted client',
+    visits_no_results:'No results.', visits_no_visits:'No visits recorded.',
+    settings_title:'Settings', settings_cloud_gt:'Salon cloud',
+    settings_sync_now:'Sync now', settings_reenter_code:'Re-enter access code',
+    settings_cloud_backups:'Cloud backups', settings_disconnect:'Disconnect this device',
+    settings_enter_code:'Enter access code',
+    settings_cloud_gf_on:'Every change is saved and shared with the other connected devices.',
+    settings_cloud_gf_off:'With the access code, data syncs across every device in the salon. It only needs to be entered once per device.',
+    settings_manage_gt:'Management', settings_staff_rt:'Staff', settings_staff_rs:'Staff members and agenda colours',
+    settings_services_rt:'Service price list',
+    settings_install_gt:'Install',
+    settings_iphone_rt:'iPhone / iPad', settings_iphone_rs:'Safari → Share → Add to Home Screen',
+    settings_android_rt:'Android', settings_android_rs:'Chrome → menu ⋮ → Install app',
+    settings_computer_rt:'Computer', settings_computer_rs:'Chrome/Edge → install icon in the address bar',
+    settings_add_device_gt:'Add another device', settings_qr_alt:'QR code to open the app',
+    settings_qr_gf:'Scan the code with the camera to open the app on another phone or tablet. The access code is still needed to see the data.',
+    settings_backup_gt:'Backup', settings_download_backup:'Download backup (.json)',
+    settings_restore_file:'Restore from file', settings_restore_local:'Restore local copy',
+    settings_last_backup_prefix:'Last backup downloaded: ', settings_never:'never',
+    settings_footer:'Salon CRM · Demo &mdash; all data is fictional.<br>Data also stays saved on this device.',
+    settings_lang_gt:'Language', lang_it:'Italiano', lang_en:'English',
+    staff_title:'Staff', staff_new:'New',
+    staff_empty:'No staff members yet.<br>Add them to assign a colour to each one and see the agenda split by staff member.',
+    staff_add_first:'Add the first one',
+    staff_gf:'Tap a name to see their summary. The colour distinguishes appointments in the agenda.',
+    staffcard_title_fallback:'Staff member', staffcard_edit:'Edit', staffcard_not_found:'Staff member not found.',
+    staffcard_total_visits:'Total<br>visits', staffcard_month_visits:'Visits<br>this month', staffcard_month_tasks:'Appointments<br>this month',
+    staffcard_services_gt:'Services performed', staffcard_visits_gt:'Visits done (',
+    staffcard_no_visits:'No visits assigned yet.', staffcard_client_deleted:'Deleted client',
+    staffcard_more_recent_gf:'Showing the 25 most recent.', staffcard_remove:'Remove from staff',
+    staffcard_remove_gf:'Visits and appointments already recorded remain, they just lose the link.',
+    services_title:'Service price list', services_new:'New', services_empty:'No services on the price list.',
+    services_add:'Add service', services_gf:'Swipe left to delete. Tap to edit.',
+    ops_none:'None',
+    pk_change:'Change', pk_search_ph:'Search client by name or phone',
+    pk_hint_optional:'Optional: leave blank for an appointment not linked to a client.',
+    pk_no_results:'No client found.', pk_no_clients:'No clients on file.', pk_last_visit_prefix:'last visit ',
+    client_form_title_edit:'Edit client', client_form_title_new:'New client',
+    client_form_name:'Full name', client_form_name_ph:'E.g. Maria Rossi',
+    client_form_phone:'Phone', client_form_phone_ph:'333 1234567',
+    client_form_email:'Email', client_form_email_ph:'optional',
+    client_form_birthday:'Birthday', client_form_referral:'Found us via', client_form_referral_ph:'Word of mouth…',
+    client_form_allergies:'Allergies / notes', client_form_allergies_ph:'E.g. sensitive to ammonia',
+    client_form_notes:'Notes', client_form_notes_ph:'Preferences, hair type…',
+    toast_name_required:'Enter at least the name.',
+    visit_add_client_first:'Add a client first.', visit_select_option:'— select —',
+    visit_form_title_edit:'Edit visit', visit_form_title_new:'New visit',
+    visit_form_client:'Client', visit_form_date:'Date', visit_form_service:'Service',
+    visit_form_who:'Who did the hair?', visit_form_who_ph:'Name of who worked',
+    visit_form_who_hint:'Add staff from Settings to pick with one tap.',
+    visit_form_color:'Colour used', visit_form_color_ph:'E.g. ash blonde, copper red…',
+    visit_form_brand:'Brand', visit_form_brand_ph:'E.g. Wella',
+    visit_form_shade:'Shade code', visit_form_shade_ph:'E.g. 7.3',
+    visit_form_oxy:'Developer (vol)', visit_form_posa:'Processing time (min)',
+    visit_form_note:'Note', visit_form_note_ph:'Special details…',
+    toast_select_client:'Select a client.', toast_select_service:'Select a service.',
+    post_form_title_edit:'Edit appointment', post_form_title_new:'New appointment',
+    post_form_day:'Day', post_form_time:'Time (optional)',
+    post_form_task:'Task', post_form_task_ph:'E.g. Colour and blow-dry. Or: order dye, call supplier…',
+    post_form_who:'Who’s handling it', post_form_link_client:'Link to a client',
+    post_form_edited_one:'Appointment edited ', post_form_edited_one_suffix:' time. The history stays saved.',
+    post_form_edited_many_suffix:' times. The history stays saved.',
+    toast_write_appointment:'Write the appointment text.',
+    hist_title:'Edit history', hist_current:'Current version',
+    staff_form_title_edit:'Edit member', staff_form_title_new:'New member',
+    staff_form_name:'Name', staff_form_name_ph:'E.g. Francesca',
+    staff_form_role:'Role (optional)', staff_form_role_ph:'E.g. colourist',
+    staff_form_color:'Agenda colour', toast_enter_name:'Enter the name.',
+    svc_form_title_edit:'Edit service', svc_form_title_new:'New service',
+    svc_form_name:'Service name', svc_form_name_ph:'E.g. Balayage',
+    svc_form_category:'Category', svc_form_category_ph:'E.g. Colour',
+    svc_form_duration:'Duration (min)', svc_form_price:'Price (€)',
+    note_form_title:'Edit note', toast_cannot_be_empty:'It can’t be empty.',
+    pw_title:'Salon cloud', pw_code_label:'Access code', pw_code_ph:'Enter the code',
+    pw_hint_default:'With the code, data syncs across every device in the salon. If syncing has stopped, re-entering it here restores the connection right away.',
+    toast_enter_code:'Enter the code.', toast_connected:'Connected to the cloud.',
+    pw_err_wrong:'Incorrect code. Try again.', toast_cloud_unreachable:'Cloud unreachable: data stays saved here.',
+    baks_title:'Backup copies', baks_loading:'Loading…', baks_restore:'Restore',
+    baks_gf:'Restoring replaces the data on the cloud with the chosen copy.',
+    baks_none:'No copies yet. They are created automatically on every save.',
+    baks_error:'Could not load the copies.',
+    print_title:'Print agenda', print_quick_label:'Quick picks',
+    print_preset_today:'Just this day', print_preset_week:'This week',
+    print_preset_7days:'Next 7 days', print_preset_month:'Whole month',
+    print_from:'From', print_to:'To',
+    print_day_one:' day', print_day_many:' days', print_with_appts:' with appointments · ',
+    print_row_one:' row', print_row_many:' rows', print_total_suffix:' in total',
+    print_footer_item_one:' appointment', print_footer_item_many:' appointments',
+    print_info_none:'No appointments in the chosen period.',
+    print_footer_printed:' · printed on ', toast_print_none:'No appointments to print in the chosen period.',
+    sync_off:'Cloud not connected', sync_syncing:'Syncing…',
+    sync_offline_pending:'No network · changes saved here, will be sent automatically',
+    sync_offline:'No network · data stays saved here',
+    sync_error:'Cloud unreachable · retrying automatically', sync_pending:'Changes to send…',
+    sync_synced:'Synced',
+    toast_storage_full:'Device storage is full.', toast_no_phone:'Number not available.',
+    toast_cloud_settings_hint:'Cloud not connected: see Settings.',
+    confirm_delete_client:'Delete this client record?',
+    confirm_remove_staff:'Remove this staff member? Visits and appointments already recorded remain.',
+    confirm_disconnect:'Disconnect this device? Data stays saved here.',
+    confirm_shrink:'This save would greatly reduce the data on the cloud (can happen if the device wasn’t up to date).\n\nForce the save? Cancel = keep the cloud data.',
+    confirm_restore_cloud:'Restore this copy? It will replace the data on the cloud.',
+    confirm_restore_local_prefix:'Restore the local copy from ', confirm_restore_local_suffix:'? It will replace the data on this device.',
+    confirm_restore_file:'The backup will replace the data on this device. Continue?',
+    toast_restored_from_cloud:'Data restored from the cloud.', toast_appt_deleted:'Appointment deleted.',
+    toast_client_deleted:'Client deleted.', toast_visit_deleted:'Visit deleted.',
+    toast_write_note_first:'Write the note first.', toast_staff_removed:'Staff member removed.',
+    toast_service_deleted:'Service deleted.', toast_device_disconnected:'Device disconnected.',
+    toast_sync_started:'Sync started…', toast_restore_failed:'Restore failed.',
+    toast_no_local_backup:'No local copy.', toast_backup_unreadable:'Copy not readable.',
+    toast_local_restored:'Local copy restored.', toast_backup_downloaded:'Backup downloaded.',
+    toast_backup_restored:'Backup restored.', toast_invalid_file:'Invalid file.',
+    toast_file_unreadable:'Could not read the file.', toast_cloud_restored:'Copy restored.',
+    demo_title:'Demo version',
+    demo_p1:'This is a hairdresser’s client register, built on commission and shown here with <strong>entirely made-up data</strong>. No real person appears on this page.',
+    demo_p2:'You can freely add, edit and delete: everything stays in your browser and resets with « Reset ».',
+    demo_go:'Enter the demo', demo_reset_title:'Reset the demo data'
+  }
+};
+function t(k){ var d = I18N[LANG] || I18N.it; return (d[k]!==undefined) ? d[k] : (I18N.it[k]!==undefined ? I18N.it[k] : k); }
 
 /* Identificativo univoco per ogni nuovo record (usato dalla fusione in sincronizzazione). */
 function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
@@ -582,7 +934,7 @@ function sk(k, v){
       plan();
     }
     return true;
-  }catch(e){ toast('Memoria del dispositivo piena.'); return false; }
+  }catch(e){ toast(t('toast_storage_full')); return false; }
 }
 
 /* ===== Sync via Netlify Function ===== */
@@ -684,7 +1036,7 @@ function syncNow(){
     var m = String(e.message);
     if(m==='unauthorized'){ dropCloud(); return; }
     if(m==='shrink'){
-      if(confirm('Questo salvataggio ridurrebbe molto i dati sul cloud (può capitare se il dispositivo non era aggiornato).\n\nForzare il salvataggio? Annulla = mantieni i dati del cloud.')){
+      if(confirm(t('confirm_shrink'))){
         syncing = true;
         return api('save',{data:pack(), force:true}).then(function(){
           sAt=Date.now(); localStorage.setItem(PX+'sAt',String(sAt)); sSt='idle'; syncing=false; paintSync();
@@ -698,7 +1050,7 @@ function syncNow(){
           if(b.data.notepad) state.notepad=b.data.notepad;
           persistAll();
         }
-        sSt='idle'; paintSync(); render(); toast('Ripristinati i dati dal cloud.');
+        sSt='idle'; paintSync(); render(); toast(t('toast_restored_from_cloud'));
       }).catch(function(){ sSt='error'; paintSync(); });
     }
     sSt = senzaRete() ? 'offline' : 'error';
@@ -724,14 +1076,12 @@ window.addEventListener('offline', function(){
 
 /* Testo dello stato di sincronizzazione mostrato all'utente. */
 function syncTxt(){
-  if(sSt==='off') return 'Cloud non collegato';
-  if(sSt==='syncing') return 'Sincronizzazione…';
-  if(sSt==='offline') return inAttesa
-    ? 'Senza rete · modifiche salvate qui, verranno inviate da sole'
-    : 'Senza rete · i dati restano salvati qui';
-  if(sSt==='error') return 'Cloud non raggiungibile · riprovo da solo';
-  if(inAttesa) return 'Modifiche da inviare…';
-  return 'Sincronizzato' + (sAt ? ' · '+new Date(sAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '');
+  if(sSt==='off') return t('sync_off');
+  if(sSt==='syncing') return t('sync_syncing');
+  if(sSt==='offline') return inAttesa ? t('sync_offline_pending') : t('sync_offline');
+  if(sSt==='error') return t('sync_error');
+  if(inAttesa) return t('sync_pending');
+  return t('sync_synced') + (sAt ? ' · '+new Date(sAt).toLocaleTimeString(loc(),{hour:'2-digit',minute:'2-digit'}) : '');
 }
 /* Classe del pallino colorato che accompagna lo stato di sincronizzazione. */
 function syncDot(){ return {off:'',syncing:'bs',offline:'wait',error:'er',idle:'ok'}[sSt] || ''; }
@@ -749,16 +1099,16 @@ function today(){ return iso(new Date()); }
 /* Estrae anno-mese da una data (serve ai raggruppamenti mensili). */
 function ymOf(d){ return String(d||'').slice(0,7); }
 /* Data leggibile all'italiana: 5 mar 2026. */
-function fmtD(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtD(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{day:'numeric',month:'short',year:'numeric'}); }
 /* Giornata per esteso: lunedi' 5 marzo. */
-function fmtDay(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}); }
+function fmtDay(s){ if(!s) return ''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{weekday:'long',day:'numeric',month:'long'}); }
 /* Prima lettera maiuscola. */
 function cap(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
 /* Data e ora di un momento preciso: 5 mar - 14:30. */
 function fmtTs(t){
   if(!t) return '';
   var d = new Date(t);
-  return d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString(loc(),{day:'numeric',month:'short'})+' · '+d.toLocaleTimeString(loc(),{hour:'2-digit',minute:'2-digit'});
 }
 /* Quanti giorni sono passati da una certa data. */
 function dSince(s){ if(!s) return null; return Math.round((new Date(today()+'T00:00:00') - new Date(s+'T00:00:00'))/86400000); }
@@ -791,11 +1141,12 @@ function opLabel(v){
 
 /* Nome in italiano di un colore della palette: mai mostrare il codice esadecimale. */
 function colorName(hex){
-  var t = String(hex||'').toUpperCase(), out = '';
+  var hx = String(hex||'').toUpperCase(), out = '';
   PALETTE.forEach(function(riga){
-    riga.forEach(function(x){ if(x.c.toUpperCase()===t) out = x.n; });
+    riga.forEach(function(x){ if(x.c.toUpperCase()===hx) out = x.n; });
   });
-  return out || 'Personalizzato';
+  if(!out) return LANG==='en' ? 'Custom' : 'Personalizzato';
+  return LANG==='en' ? (COLOR_EN[out] || out) : out;
 }
 
 /* Colore di un operatore; grigio neutro se l'appunto non ha operatore. */
@@ -880,7 +1231,7 @@ function ext(url){
    o lascerebbe una scheda vuota. */
 function callNumber(phone){
   var n = String(phone||'').replace(/[^\d+]/g,'');
-  if(!n){ toast('Numero non disponibile.'); return; }
+  if(!n){ toast(t('toast_no_phone')); return; }
   window.location.href = 'tel:'+n;
 }
 
@@ -919,25 +1270,25 @@ function render(){
   var h = document.getElementById('scr');
   h.className = 'scr' + (state.stack.length ? '' : ' rt');
   h.innerHTML = def.body(ctx);
-  document.getElementById('tabs').innerHTML = TABS.map(function(t){
-    return '<button class="tb '+(state.tab===t.id?'on':'')+'" data-a="tab" data-id="'+t.id+'">'+
-      '<svg viewBox="0 0 24 24">'+IC[t.ic]+'</svg>'+t.label+'</button>';
+  document.getElementById('tabs').innerHTML = TABS.map(function(tb){
+    return '<button class="tb '+(state.tab===tb.id?'on':'')+'" data-a="tab" data-id="'+tb.id+'">'+
+      '<svg viewBox="0 0 24 24">'+IC[tb.ic]+'</svg>'+esc(t('tab_'+tb.id))+'</button>';
   }).join('');
   paintSync(); onScroll();
 }
 /* Costruisce la barra superiore: indietro, titolo grande e compatto, marchio, pulsante di destra. */
 function navHtml(def, ctx){
-  var t = typeof def.title==='function' ? def.title(ctx) : def.title;
+  var ttl = typeof def.title==='function' ? def.title(ctx) : def.title;
   var r = def.right ? def.right(ctx) : '';
   return '<div class="nav-row">'+
     (state.stack.length
-      ? '<button class="nb" data-a="back"><svg class="ch" viewBox="0 0 8 14" style="opacity:1;stroke:var(--accent-2);margin-right:5px;transform:rotate(180deg)"><path d="M1 1l5.5 6L1 13"/></svg>Indietro</button>'
+      ? '<button class="nb" data-a="back"><svg class="ch" viewBox="0 0 8 14" style="opacity:1;stroke:var(--accent-2);margin-right:5px;transform:rotate(180deg)"><path d="M1 1l5.5 6L1 13"/></svg>'+esc(t('nb_back'))+'</button>'
       : '<span class="nb-sp"></span>')+
-    '<div class="nav-mini">'+esc(t)+'</div>'+
+    '<div class="nav-mini">'+esc(ttl)+'</div>'+
     (r || '<span class="nb-sp"></span>')+
   '</div>'+
   (def.brand ? '<div class="brand"><img src="logo.png" alt="Salon CRM"></div>' : '')+
-  '<div class="lt">'+esc(t)+(def.sub ? '<span class="s">'+esc(def.sub(ctx))+'</span>' : '')+'</div>';
+  '<div class="lt">'+esc(ttl)+(def.sub ? '<span class="s">'+esc(def.sub(ctx))+'</span>' : '')+'</div>';
 }
 
 /* ===== Righe ===== */
@@ -947,7 +1298,7 @@ function rowSwipe(delAct, delId, inner, tapAttrs){
   var attrs = tapAttrs || '';
   var apertura = /class=/.test(attrs) ? '<div ' + attrs + '>' : '<div class="row-in tap" '+attrs+'>';
   return '<div class="row sw" data-swipe>'+
-    '<div class="row-del" data-a="'+delAct+'" data-id="'+delId+'">Elimina</div>'+
+    '<div class="row-del" data-a="'+delAct+'" data-id="'+delId+'">'+esc(t('del_label'))+'</div>'+
     apertura+inner+'</div></div>';
 }
 /* Riga semplice, eventualmente toccabile. */
@@ -962,28 +1313,28 @@ var SC = {};
 /* ---- AGENDA ---- */
 /* Home: calendario del mese + scheda della giornata scelta con i suoi appunti. */
 SC.agenda = {
-  title:'Agenda', brand:true,
+  title:function(){ return t('tab_agenda'); }, brand:true,
   sub:function(){ return cap(fmtDay(today())); },
-  right:function(){ return '<button class="nb" data-a="new-post">Aggiungi</button>'; },
+  right:function(){ return '<button class="nb" data-a="new-post">'+esc(t('nb_add'))+'</button>'; },
   body:function(){
     var ps = postsOn(state.pickDate);
     var isT = state.pickDate === today();
     return calHtml() +
       '<div class="sy"><span class="dt '+syncDot()+'" data-dt></span><span data-sy>'+esc(syncTxt())+'</span></div>' +
-      '<div class="g"><div class="gt" data-dayswipe>'+(isT?'Oggi · ':'')+esc(cap(fmtDay(state.pickDate)))+
-        ' <span style="opacity:.5;text-transform:none;letter-spacing:0">\u2039 scorri \u203A</span></div>'+
+      '<div class="g"><div class="gt" data-dayswipe>'+(isT?esc(t('ag_today_prefix')):'')+esc(cap(fmtDay(state.pickDate)))+
+        ' <span style="opacity:.5;text-transform:none;letter-spacing:0">'+esc(t('ag_swipe_hint'))+'</span></div>'+
         '<div data-dayswipe>'+legendHtml(ps)+
-        (ps.length ? '<div class="tbl-h"><span>Orario</span><span>Tipo di lavoro</span><span style="text-align:center">Staff</span></div>' : '')+
+        (ps.length ? '<div class="tbl-h"><span>'+esc(t('tbl_time'))+'</span><span>'+esc(t('tbl_type'))+'</span><span style="text-align:center">'+esc(t('tbl_staff'))+'</span></div>' : '')+
         '</div>'+
         (ps.length ? '<div class="tbl-list">'+ps.map(postRow).join('')+'</div>' : '')+
         '<div class="list" style="margin-top:'+(ps.length?'8px':'0')+'">'+
-          (ps.length ? '' : rowPlain('<div class="rm"><div class="rs">Nessun appuntamento per questa giornata.</div></div>'))+
-          rowPlain('<div class="rt">+ Aggiungi appuntamento</div>','data-a="new-post"','tap ctr acc')+
+          (ps.length ? '' : rowPlain('<div class="rm"><div class="rs">'+esc(t('ag_empty'))+'</div></div>'))+
+          rowPlain('<div class="rt">'+esc(t('ag_add_appt'))+'</div>','data-a="new-post"','tap ctr acc')+
         '</div>'+
-        (ps.length ? '<div class="g" style="margin:10px 0 0"><button class="btn w" data-a="print-day">Stampa agenda</button></div>' : '')+
-        '<div class="gf">Le righe sono ordinate per operatore e colorate con il suo colore. '+
-        (LT().length ? '' : 'Aggiungi lo staff dalle Impostazioni per assegnare gli impegni. ')+
-        'Ogni appuntamento resta datato con il giorno e l\u2019ora in cui l\u2019hai scritto.</div>'+
+        (ps.length ? '<div class="g" style="margin:10px 0 0"><button class="btn w" data-a="print-day">'+esc(t('ag_print_btn'))+'</button></div>' : '')+
+        '<div class="gf">'+esc(t('ag_gf_rows'))+
+        (LT().length ? '' : esc(t('ag_gf_staff')))+
+        esc(t('ag_gf_date'))+'</div>'+
       '</div>';
   }
 };
@@ -993,7 +1344,7 @@ function calHtml(){
   var first = new Date(y, m-1, 1);
   var lead = (first.getDay()+6)%7;
   var dim = new Date(y, m, 0).getDate();
-  var label = first.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+  var label = first.toLocaleDateString(loc(),{month:'long',year:'numeric'});
   var cells = '';
   for(var i=0;i<lead;i++) cells += '<div class="d empty"></div>';
   for(var d=1;d<=dim;d++){
@@ -1004,10 +1355,10 @@ function calHtml(){
   }
   return '<div class="cal"><div class="cal-h"><div class="cal-m">'+esc(label)+'</div><div class="cal-nav">'+
     '<button data-a="mprev"><svg viewBox="0 0 8 14" style="transform:rotate(180deg)"><path d="M1 1l5.5 6L1 13"/></svg></button>'+
-    '<button data-a="mtoday" style="padding:0 8px;font-size:15px;font-weight:600">Oggi</button>'+
+    '<button data-a="mtoday" style="padding:0 8px;font-size:15px;font-weight:600">'+esc(t('cal_today'))+'</button>'+
     '<button data-a="mnext"><svg viewBox="0 0 8 14"><path d="M1 1l5.5 6L1 13"/></svg></button>'+
     '</div></div>'+
-    '<div class="dow"><span>lun</span><span>mar</span><span>mer</span><span>gio</span><span>ven</span><span>sab</span><span>dom</span></div>'+
+    '<div class="dow">'+DOW[LANG in DOW?LANG:'it'].map(function(w){ return '<span>'+esc(w)+'</span>'; }).join('')+'</div>'+
     '<div class="grid">'+cells+'</div></div>';
 }
 /* Riga di un appunto d'agenda: testo, cliente collegato, data di inserimento, numero di modifiche. */
@@ -1049,7 +1400,7 @@ function postRow(p){
         // se c'e' cronologia la riga stessa la apre, senza aggiungere un link.
         (nh
           ? '<div class="tr-sub tr-hist" data-a="post-hist" data-id="'+p.id+'">'+fmtTs(p.createdAt)+
-            ' · '+nh+(nh===1?' modifica':' modifiche')+' \u203A</div>'
+            ' · '+nh+esc(nh===1?t('hist_one'):t('hist_many'))+' \u203A</div>'
           : '<div class="tr-sub">'+fmtTs(p.createdAt)+'</div>')+
       '</div>'+
       (s
@@ -1065,19 +1416,19 @@ function postRow(p){
 /* ---- CLIENTI ---- */
 /* Elenco clienti con ricerca per nome o telefono. */
 SC.clients = {
-  title:'Clienti',
-  sub:function(){ return LC().length+' in archivio'; },
-  right:function(){ return '<button class="nb" data-a="new-client">Nuovo</button>'; },
+  title:function(){ return t('tab_clients'); },
+  sub:function(){ return LC().length+t('cli_sub_suffix'); },
+  right:function(){ return '<button class="nb" data-a="new-client">'+esc(t('cli_new'))+'</button>'; },
   body:function(){
     var q = state.qClient.toLowerCase();
     var l = LC().filter(function(c){ return String(c.name).toLowerCase().indexOf(q)>=0 || String(c.phone||'').indexOf(q)>=0; })
                 .sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'it'); });
     return '<div class="sw-box"><div class="search">'+
       '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'+
-      '<input id="q-cli" type="search" placeholder="Cerca nome o telefono" value="'+esc(state.qClient)+'"></div></div>'+
+      '<input id="q-cli" type="search" placeholder="'+esc(t('cli_search_ph'))+'" value="'+esc(state.qClient)+'"></div></div>'+
       (l.length ? '<div class="g"><div class="list">'+l.map(cliRow).join('')+'</div></div>'
-        : '<div class="mt"><b>\uD83D\uDC64</b>'+(LC().length?'Nessun risultato.':'Nessun cliente ancora.')+
-          '<div style="margin-top:16px"><button class="btn p s" data-a="new-client">Aggiungi il primo cliente</button></div></div>');
+        : '<div class="mt"><b>\uD83D\uDC64</b>'+esc(LC().length?t('cli_no_results'):t('cli_no_clients_yet'))+
+          '<div style="margin-top:16px"><button class="btn p s" data-a="new-client">'+esc(t('cli_add_first'))+'</button></div></div>');
   }
 };
 /* Riga cliente: nome, ultimo servizio e giorni dall'ultima visita. */
@@ -1085,65 +1436,65 @@ function cliRow(c){
   var lv = lastVis(c.id), d = lv ? dSince(lv.date) : null;
   return rowSwipe('del-client', c.id,
     '<div class="rm"><div class="rt">'+esc(c.name)+'</div>'+
-    '<div class="rs">'+(lv?esc(lv.service):(c.phone?esc(c.phone):'nessuna visita'))+'</div></div>'+
-    (d!==null ? '<span class="rv">'+(d===0?'oggi':d+'g')+'</span>' : '')+CHEV,
+    '<div class="rs">'+(lv?esc(lv.service):(c.phone?esc(c.phone):esc(t('cli_no_visit'))))+'</div></div>'+
+    (d!==null ? '<span class="rv">'+(d===0?esc(t('cli_today')):d+esc(t('cli_days_suffix')))+'</span>' : '')+CHEV,
     'data-a="open-client" data-id="'+c.id+'"');
 }
 
 /* Scheda cliente: anagrafica, storico visite e diario appunti. */
 SC.client = {
-  title:function(c){ return c ? c.name : 'Scheda'; },
+  title:function(c){ return c ? c.name : t('client_title_fallback'); },
   data:function(id){ return cli(id); },
-  right:function(c){ return c ? '<button class="nb" data-a="edit-client" data-id="'+c.id+'">Modifica</button>' : ''; },
+  right:function(c){ return c ? '<button class="nb" data-a="edit-client" data-id="'+c.id+'">'+esc(t('client_edit'))+'</button>' : ''; },
   body:function(c){
-    if(!c) return '<div class="mt">Scheda non trovata.</div>';
+    if(!c) return '<div class="mt">'+esc(t('client_not_found'))+'</div>';
     var vs = visOf(c.id);
     var ns = LM().filter(function(m){ return m.clientId===c.id; }).sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
     return '<div class="pf"><div class="av">'+esc(ini(c.name))+'</div>'+
       '<div class="n">'+esc(c.name)+'</div>'+
-      '<div class="m">'+vs.length+' visite'+(c.phone?' · '+esc(c.phone):'')+'</div></div>'+
+      '<div class="m">'+vs.length+esc(t('client_visits_suffix'))+(c.phone?' · '+esc(c.phone):'')+'</div></div>'+
       (c.phone ? '<div class="g" style="display:flex;gap:10px">'+
         '<button class="btn p" style="flex:1" data-a="call" data-id="'+c.id+'">'+
           '<svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round">'+
           '<path d="M21.6 16.9v2.9a2 2 0 0 1-2.1 2 19.4 19.4 0 0 1-8.5-3 19.1 19.1 0 0 1-5.9-5.9 19.4 19.4 0 0 1-3-8.6A2 2 0 0 1 4 2.2h2.9a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L7.9 10a15.5 15.5 0 0 0 5.9 5.9l1.2-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>'+
-          'Chiama</button>'+
-        '<button class="btn" style="flex:1" data-a="wa" data-id="'+c.id+'">WhatsApp</button>'+
+          esc(t('client_call'))+'</button>'+
+        '<button class="btn" style="flex:1" data-a="wa" data-id="'+c.id+'">'+esc(t('client_whatsapp'))+'</button>'+
       '</div>' : '')+
 
-      '<div class="g"><div class="gt">Dati</div><div class="list">'+
+      '<div class="g"><div class="gt">'+esc(t('client_data_gt'))+'</div><div class="list">'+
         (c.phone
-          ? rowPlain('<div class="rm"><div class="rs">Telefono</div><div class="rt sel">'+esc(c.phone)+'</div></div>'+
-              '<span class="rv" style="color:var(--accent-2)">Chiama</span>','data-a="call" data-id="'+c.id+'"','tap')
-          : rowPlain('<div class="rm"><div class="rs">Telefono</div><div class="rt">—</div></div>'))+
-        rowPlain('<div class="rm"><div class="rs">Email</div><div class="rt sel">'+esc(c.email||'—')+'</div></div>')+
-        rowPlain('<div class="rm"><div class="rs">Compleanno</div><div class="rt">'+(c.birthday?esc(new Date(c.birthday+'T00:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'long'})):'—')+'</div></div>')+
-        rowPlain('<div class="rm"><div class="rs">Conosciuta tramite</div><div class="rt">'+esc(c.referral||'—')+'</div></div>')+
+          ? rowPlain('<div class="rm"><div class="rs">'+esc(t('client_phone'))+'</div><div class="rt sel">'+esc(c.phone)+'</div></div>'+
+              '<span class="rv" style="color:var(--accent-2)">'+esc(t('client_call_rv'))+'</span>','data-a="call" data-id="'+c.id+'"','tap')
+          : rowPlain('<div class="rm"><div class="rs">'+esc(t('client_phone'))+'</div><div class="rt">—</div></div>'))+
+        rowPlain('<div class="rm"><div class="rs">'+esc(t('client_email'))+'</div><div class="rt sel">'+esc(c.email||'—')+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rs">'+esc(t('client_birthday'))+'</div><div class="rt">'+(c.birthday?esc(new Date(c.birthday+'T00:00:00').toLocaleDateString(loc(),{day:'numeric',month:'long'})):'—')+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rs">'+esc(t('client_referral'))+'</div><div class="rt">'+esc(c.referral||'—')+'</div></div>')+
       '</div></div>'+
 
-      (c.allergies ? '<div class="g"><div class="gt">Allergie / attenzioni</div><div class="list">'+
+      (c.allergies ? '<div class="g"><div class="gt">'+esc(t('client_allergies_gt'))+'</div><div class="list">'+
         rowPlain('<div class="rm"><div class="rt sel" style="color:var(--red);white-space:pre-wrap">'+esc(c.allergies)+'</div></div>')+'</div></div>' : '')+
-      (c.notes ? '<div class="g"><div class="gt">Note</div><div class="list">'+
+      (c.notes ? '<div class="g"><div class="gt">'+esc(t('client_notes_gt'))+'</div><div class="list">'+
         rowPlain('<div class="rm"><div class="rt sel" style="white-space:pre-wrap">'+esc(c.notes)+'</div></div>')+'</div></div>' : '')+
 
-      '<div class="g"><div class="gt">Storico visite ('+vs.length+')</div><div class="list">'+
+      '<div class="g"><div class="gt">'+esc(t('client_visits_history_gt'))+vs.length+')</div><div class="list">'+
         (vs.length ? vs.map(visItem).join('')
-          : rowPlain('<div class="rm"><div class="rs">Nessuna visita registrata. Puoi aggiungere anche visite passate.</div></div>'))+
-        rowPlain('<div class="rt">+ Aggiungi visita</div>','data-a="new-visit" data-id="'+c.id+'"','tap ctr acc')+
+          : rowPlain('<div class="rm"><div class="rs">'+esc(t('client_no_visits'))+'</div></div>'))+
+        rowPlain('<div class="rt">'+esc(t('client_add_visit'))+'</div>','data-a="new-visit" data-id="'+c.id+'"','tap ctr acc')+
       '</div></div>'+
 
-      '<div class="g"><div class="gt">Diario ('+ns.length+')</div><div class="list">'+
-        rowPlain('<textarea id="nc" placeholder="Scrivi un appunto su questa cliente\u2026" style="width:100%;background:var(--card-2);border:none;color:var(--text);padding:12px;border-radius:10px;min-height:64px;resize:none;outline:none;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5"></textarea>'+
-          '<button class="btn p s" style="margin-top:10px" data-a="add-note" data-id="'+c.id+'">Aggiungi appunto</button>','','col')+
+      '<div class="g"><div class="gt">'+esc(t('client_diary_gt'))+ns.length+')</div><div class="list">'+
+        rowPlain('<textarea id="nc" placeholder="'+esc(t('client_note_ph'))+'" style="width:100%;background:var(--card-2);border:none;color:var(--text);padding:12px;border-radius:10px;min-height:64px;resize:none;outline:none;-webkit-user-select:text;user-select:text;font-size:16px;line-height:1.5"></textarea>'+
+          '<button class="btn p s" style="margin-top:10px" data-a="add-note" data-id="'+c.id+'">'+esc(t('client_add_note_btn'))+'</button>','','col')+
         ns.map(function(m){
           return rowSwipe('del-note', m.id,
             '<div class="rm"><div class="rt" style="white-space:pre-wrap">'+esc(m.text)+'</div>'+
-            '<div class="rs">'+fmtTs(m.createdAt)+(m.edited?' · modificato':'')+'</div></div>',
+            '<div class="rs">'+fmtTs(m.createdAt)+(m.edited?esc(t('client_edited_suffix')):'')+'</div></div>',
             'data-a="edit-note" data-id="'+m.id+'"');
         }).join('')+
-      '</div><div class="gf">Scorri un appunto verso sinistra per eliminarlo. Tocca per modificarlo.</div></div>'+
+      '</div><div class="gf">'+esc(t('client_diary_gf'))+'</div></div>'+
 
       '<div class="g"><div class="list">'+
-        rowPlain('<div class="rt">Elimina cliente</div>','data-a="del-client" data-id="'+c.id+'"','tap ctr dg')+
+        rowPlain('<div class="rt">'+esc(t('client_delete'))+'</div>','data-a="del-client" data-id="'+c.id+'"','tap ctr dg')+
       '</div></div>';
   }
 };
@@ -1154,39 +1505,39 @@ function visItem(v){
     '<div class="rm">'+
       '<div class="rt">'+esc(v.service)+'</div>'+
       '<div class="rs">'+fmtD(v.date)+opLabel(v)+'</div>'+
-      (v.color ? '<div class="rs">Colore: '+esc(v.color)+'</div>' : '')+
+      (v.color ? '<div class="rs">'+esc(t('visit_color_prefix'))+esc(v.color)+'</div>' : '')+
       (v.note ? '<div class="rs" style="font-style:italic">'+esc(v.note)+'</div>' : '')+
-      (f ? '<div class="rs">Formula: '+esc(f)+'</div>' : '')+
+      (f ? '<div class="rs">'+esc(t('visit_formula_prefix'))+esc(f)+'</div>' : '')+
     '</div>', 'data-a="edit-visit" data-id="'+v.id+'"');
 }
 
 /* ---- DASHBOARD ---- */
 /* Dashboard: contatori, grafico visite, servizi piu' richiesti, blocco note. */
 SC.dash = {
-  title:'Dashboard', brand:true,
-  sub:function(){ return 'Andamento del salone'; },
+  title:function(){ return t('tab_dash'); }, brand:true,
+  sub:function(){ return t('dash_sub'); },
   body:function(){
     var mth = ymOf(today());
     var vm = LV().filter(function(v){ return v.date && ymOf(v.date)===mth; }).length;
     var pm = LP().filter(function(p){ return p.date && ymOf(p.date)===mth; }).length;
     var top = topServices(4), away = awayClients(60,5);
     return '<div class="stats">'+
-        '<div class="stx"><b>'+LC().length+'</b><i>Clienti</i></div>'+
-        '<div class="stx"><b class="a">'+vm+'</b><i>Visite<br>questo mese</i></div>'+
-        '<div class="stx"><b>'+pm+'</b><i>Appunti<br>questo mese</i></div>'+
+        '<div class="stx"><b>'+LC().length+'</b><i>'+esc(t('dash_clients'))+'</i></div>'+
+        '<div class="stx"><b class="a">'+vm+'</b><i>'+t('dash_visits_month')+'</i></div>'+
+        '<div class="stx"><b>'+pm+'</b><i>'+t('dash_notes_month')+'</i></div>'+
       '</div>'+
-      '<div class="g" style="margin-bottom:-12px"><div class="gt">Visite per mese</div></div>'+
+      '<div class="g" style="margin-bottom:-12px"><div class="gt">'+esc(t('dash_visits_per_month_gt'))+'</div></div>'+
       chartHtml(perMonth(6))+
-      (top.length ? '<div class="g"><div class="gt">Servizi più richiesti</div><div class="list">'+
-        top.map(function(t){ return rowPlain('<div class="rm"><div class="rt">'+esc(t.name)+'</div></div><span class="rv">'+t.n+'</span>'); }).join('')+
+      (top.length ? '<div class="g"><div class="gt">'+esc(t('dash_top_services_gt'))+'</div><div class="list">'+
+        top.map(function(x){ return rowPlain('<div class="rm"><div class="rt">'+esc(x.name)+'</div></div><span class="rv">'+x.n+'</span>'); }).join('')+
         '</div></div>' : '')+
-      (away.length ? '<div class="g"><div class="gt">Non si vedono da un po\u2019</div><div class="list">'+
+      (away.length ? '<div class="g"><div class="gt">'+esc(t('dash_away_gt'))+'</div><div class="list">'+
         away.map(function(a){
           return rowPlain('<div class="rm"><div class="rt">'+esc(a.c.name)+'</div>'+
-            '<div class="rs">ultima visita '+fmtD(a.last.date)+'</div></div><span class="rv">'+a.d+'g</span>'+CHEV,
+            '<div class="rs">'+esc(t('dash_away_last_visit_prefix'))+fmtD(a.last.date)+'</div></div><span class="rv">'+a.d+esc(t('cli_days_suffix'))+'</span>'+CHEV,
             'data-a="open-client" data-id="'+a.c.id+'"','tap');
-        }).join('')+'</div><div class="gf">Clienti che non passano da più di 60 giorni.</div></div>' : '')+
-      '<div class="g"><div class="gt">Blocco note</div>'+
+        }).join('')+'</div><div class="gf">'+esc(t('dash_away_gf'))+'</div></div>' : '')+
+      '<div class="g"><div class="gt">'+esc(t('dash_notepad_gt'))+'</div>'+
         '<textarea class="pad" id="pad">'+esc(state.notepad.text||'')+'</textarea>'+
         '</div>';
   }
@@ -1197,7 +1548,7 @@ function perMonth(n){
   for(var i=n-1;i>=0;i--){
     var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     var ym = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    out.push({ym:ym, label:d.toLocaleDateString('it-IT',{month:'short'}),
+    out.push({ym:ym, label:d.toLocaleDateString(loc(),{month:'short'}),
               n:LV().filter(function(v){ return v.date && ymOf(v.date)===ym; }).length});
   }
   return out;
@@ -1238,84 +1589,88 @@ function awayClients(days, n){
 /* ---- STORICO ---- */
 /* Storico di tutte le visite, con ricerca per cliente. */
 SC.visits = {
-  title:'Storico',
-  sub:function(){ return LV().length+' visite registrate'; },
-  right:function(){ return '<button class="nb" data-a="new-visit">Nuova</button>'; },
+  title:function(){ return t('tab_visits'); },
+  sub:function(){ return LV().length+t('visits_sub_suffix'); },
+  right:function(){ return '<button class="nb" data-a="new-visit">'+esc(t('visits_new'))+'</button>'; },
   body:function(){
     var q = state.qVisit.toLowerCase();
     var l = LV().slice().sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
     if(q) l = l.filter(function(v){ var c=cli(v.clientId); return c && String(c.name).toLowerCase().indexOf(q)>=0; });
     return '<div class="sw-box"><div class="search">'+
       '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>'+
-      '<input id="q-vis" type="search" placeholder="Cerca per cliente" value="'+esc(state.qVisit)+'"></div></div>'+
+      '<input id="q-vis" type="search" placeholder="'+esc(t('visits_search_ph'))+'" value="'+esc(state.qVisit)+'"></div></div>'+
       (l.length ? '<div class="g"><div class="list">'+l.map(function(v){
         var c = cli(v.clientId);
         var s = v.staffId ? stf(v.staffId) : null;
         return rowPlain(
           (s ? '<span class="dot-st" style="background:'+s.color+'"></span>' : '')+
-          '<div class="rm"><div class="rt">'+esc(c?c.name:'Cliente eliminato')+'</div>'+
+          '<div class="rm"><div class="rt">'+esc(c?c.name:t('visits_client_deleted'))+'</div>'+
           '<div class="rs">'+esc(v.service)+' · '+fmtD(v.date)+opLabel(v)+(v.color?' · '+esc(v.color):'')+'</div></div>'+(c?CHEV:''),
           c?'data-a="open-client" data-id="'+c.id+'"':'', c?'tap':'');
       }).join('')+'</div></div>'
-      : '<div class="mt"><b>\uD83D\uDCD6</b>'+(LV().length?'Nessun risultato.':'Nessuna visita registrata.')+'</div>');
+      : '<div class="mt"><b>\uD83D\uDCD6</b>'+esc(LV().length?t('visits_no_results'):t('visits_no_visits'))+'</div>');
   }
 };
 
 /* ---- IMPOSTAZIONI ---- */
 /* Impostazioni: cloud, listino, installazione, copie di sicurezza. */
 SC.settings = {
-  title:'Impostazioni', brand:true,
+  title:function(){ return t('tab_settings'); }, brand:true,
   body:function(){
     var lb = parseInt(localStorage.getItem(PX+'lastBak')||'0');
-    return '<div class="g"><div class="gt">Cloud del salone</div><div class="list">'+
+    return '<div class="g"><div class="gt">'+esc(t('settings_lang_gt'))+'</div>'+
+        '<div class="ops">'+
+          '<button class="op-c'+(LANG==='it'?' on':'')+'" data-a="set-lang" data-id="it">'+esc(t('lang_it'))+'</button>'+
+          '<button class="op-c'+(LANG==='en'?' on':'')+'" data-a="set-lang" data-id="en">'+esc(t('lang_en'))+'</button>'+
+        '</div></div>'+
+
+      '<div class="g"><div class="gt">'+esc(t('settings_cloud_gt'))+'</div><div class="list">'+
         rowPlain('<span class="dt '+syncDot()+'" data-dt></span><div class="rm"><div class="rt" data-sy>'+esc(syncTxt())+'</div></div>')+
         (cloudOn()
-          ? rowPlain('<div class="rt">Sincronizza adesso</div>','data-a="sync"','tap acc')+
-            rowPlain('<div class="rt">Reinserisci codice di accesso</div>','data-a="cloud-in"','tap acc')+
-            rowPlain('<div class="rt">Copie di riserva sul cloud</div>'+CHEV,'data-a="baks"','tap')+
-            rowPlain('<div class="rt">Scollega questo dispositivo</div>','data-a="cloud-out"','tap dg')
-          : rowPlain('<div class="rt">Inserisci codice di accesso</div>','data-a="cloud-in"','tap acc'))+
+          ? rowPlain('<div class="rt">'+esc(t('settings_sync_now'))+'</div>','data-a="sync"','tap acc')+
+            rowPlain('<div class="rt">'+esc(t('settings_reenter_code'))+'</div>','data-a="cloud-in"','tap acc')+
+            rowPlain('<div class="rt">'+esc(t('settings_cloud_backups'))+'</div>'+CHEV,'data-a="baks"','tap')+
+            rowPlain('<div class="rt">'+esc(t('settings_disconnect'))+'</div>','data-a="cloud-out"','tap dg')
+          : rowPlain('<div class="rt">'+esc(t('settings_enter_code'))+'</div>','data-a="cloud-in"','tap acc'))+
       '</div><div class="gf">'+(cloudOn()
-        ? 'Ogni modifica viene salvata e condivisa con gli altri dispositivi collegati.'
-        : 'Con il codice di accesso i dati si sincronizzano fra tutti i dispositivi del salone. Va inserito una sola volta per dispositivo.')+'</div></div>'+
+        ? esc(t('settings_cloud_gf_on'))
+        : esc(t('settings_cloud_gf_off')))+'</div></div>'+
 
-      '<div class="g"><div class="gt">Gestione</div><div class="list">'+
-        rowPlain('<div class="rm"><div class="rt">Staff</div><div class="rs">Operatori e colori dell\u2019agenda</div></div><span class="rv">'+LT().length+'</span>'+CHEV,'data-a="staff"','tap')+
-        rowPlain('<div class="rm"><div class="rt">Listino servizi</div></div><span class="rv">'+LS().length+'</span>'+CHEV,'data-a="services"','tap')+
+      '<div class="g"><div class="gt">'+esc(t('settings_manage_gt'))+'</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt">'+esc(t('settings_staff_rt'))+'</div><div class="rs">'+esc(t('settings_staff_rs'))+'</div></div><span class="rv">'+LT().length+'</span>'+CHEV,'data-a="staff"','tap')+
+        rowPlain('<div class="rm"><div class="rt">'+esc(t('settings_services_rt'))+'</div></div><span class="rv">'+LS().length+'</span>'+CHEV,'data-a="services"','tap')+
       '</div></div>'+
 
-      '<div class="g"><div class="gt">Installazione</div><div class="list">'+
-        rowPlain('<div class="rm"><div class="rt">iPhone / iPad</div><div class="rs">Safari → Condividi → Aggiungi a Home</div></div>')+
-        rowPlain('<div class="rm"><div class="rt">Android</div><div class="rs">Chrome → menu ⋮ → Installa app</div></div>')+
-        rowPlain('<div class="rm"><div class="rt">Computer</div><div class="rs">Chrome/Edge → icona installa nella barra indirizzi</div></div>')+
+      '<div class="g"><div class="gt">'+esc(t('settings_install_gt'))+'</div><div class="list">'+
+        rowPlain('<div class="rm"><div class="rt">'+esc(t('settings_iphone_rt'))+'</div><div class="rs">'+esc(t('settings_iphone_rs'))+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rt">'+esc(t('settings_android_rt'))+'</div><div class="rs">'+esc(t('settings_android_rs'))+'</div></div>')+
+        rowPlain('<div class="rm"><div class="rt">'+esc(t('settings_computer_rt'))+'</div><div class="rs">'+esc(t('settings_computer_rs'))+'</div></div>')+
       '</div></div>'+
 
-      '<div class="g"><div class="gt">Aggiungi un altro dispositivo</div>'+
-        '<div class="qr"><img src="qr.svg" alt="Codice QR per aprire l\u2019app">'+
+      '<div class="g"><div class="gt">'+esc(t('settings_add_device_gt'))+'</div>'+
+        '<div class="qr"><img src="qr.svg" alt="'+esc(t('settings_qr_alt'))+'">'+
         '<div class="u">github.com/Andrioskij/offline-first-salon-crm</div></div>'+
-        '<div class="gf">Inquadra il codice con la fotocamera per aprire l\u2019app su un altro telefono o tablet. '+
-        'Serve comunque il codice di accesso per vedere i dati.</div></div>'+
+        '<div class="gf">'+esc(t('settings_qr_gf'))+'</div></div>'+
 
-      '<div class="g"><div class="gt">Copia di sicurezza</div><div class="list">'+
-        rowPlain('<div class="rt">Scarica backup (.json)</div>','data-a="export"','tap acc')+
-        rowPlain('<div class="rt">Ripristina da file</div>','data-a="import"','tap')+
-        rowPlain('<div class="rt">Ripristina copia locale</div>','data-a="snap"','tap')+
-      '</div><div class="gf">Ultimo backup scaricato: '+(lb?esc(new Date(lb).toLocaleString('it-IT')):'mai')+'.</div>'+
+      '<div class="g"><div class="gt">'+esc(t('settings_backup_gt'))+'</div><div class="list">'+
+        rowPlain('<div class="rt">'+esc(t('settings_download_backup'))+'</div>','data-a="export"','tap acc')+
+        rowPlain('<div class="rt">'+esc(t('settings_restore_file'))+'</div>','data-a="import"','tap')+
+        rowPlain('<div class="rt">'+esc(t('settings_restore_local'))+'</div>','data-a="snap"','tap')+
+      '</div><div class="gf">'+esc(t('settings_last_backup_prefix'))+(lb?esc(new Date(lb).toLocaleString(loc())):esc(t('settings_never')))+'.</div>'+
       '<input type="file" id="rf" accept="application/json" style="display:none"></div>'+
 
-      '<div class="g"><div class="gf" style="text-align:center">Salon CRM · Demo &mdash; tutti i dati sono fittizi.<br>I dati restano salvati anche su questo dispositivo.</div></div>';
+      '<div class="g"><div class="gf" style="text-align:center">'+t('settings_footer')+'</div></div>';
   }
 };
 
 /* Staff: elenco degli operatori con il colore assegnato a ciascuno. */
 SC.staff = {
-  title:'Staff',
-  right:function(){ return '<button class="nb" data-a="new-stf">Nuovo</button>'; },
+  title:function(){ return t('staff_title'); },
+  right:function(){ return '<button class="nb" data-a="new-stf">'+esc(t('staff_new'))+'</button>'; },
   body:function(){
     var l = LT();
-    if(!l.length) return '<div class="mt"><b>\uD83D\uDC65</b>Nessun membro dello staff.<br>'+
-      'Aggiungendoli potrai assegnare a ciascuno un colore e vedere l\u2019agenda divisa per operatore.'+
-      '<div style="margin-top:16px"><button class="btn p s" data-a="new-stf">Aggiungi il primo</button></div></div>';
+    if(!l.length) return '<div class="mt"><b>\uD83D\uDC65</b>'+t('staff_empty')+
+      '<div style="margin-top:16px"><button class="btn p s" data-a="new-stf">'+esc(t('staff_add_first'))+'</button></div></div>';
     return '<div class="g"><div class="list">'+l.map(function(s){
       return rowSwipe('del-stf', s.id,
         '<span class="dot-st" style="background:'+s.color+'"></span>'+
@@ -1323,17 +1678,17 @@ SC.staff = {
         '<div class="rs">'+(s.role?esc(s.role)+' · ':'')+esc(colorName(s.color))+'</div></div>'+CHEV,
         'data-a="open-stf" data-id="'+s.id+'"');
     }).join('')+'</div>'+
-    '<div class="gf">Tocca un nome per vedere il suo riepilogo. Il colore distingue gli impegni nell\u2019agenda.</div></div>';
+    '<div class="gf">'+esc(t('staff_gf'))+'</div></div>';
   }
 };
 
 /* Scheda del singolo operatore: colori, numeri e attivita' svolta. */
 SC.staffCard = {
-  title:function(s){ return s ? s.name : 'Operatore'; },
+  title:function(s){ return s ? s.name : t('staffcard_title_fallback'); },
   data:function(id){ return stf(id); },
-  right:function(s){ return s ? '<button class="nb" data-a="edit-stf" data-id="'+s.id+'">Modifica</button>' : ''; },
+  right:function(s){ return s ? '<button class="nb" data-a="edit-stf" data-id="'+s.id+'">'+esc(t('staffcard_edit'))+'</button>' : ''; },
   body:function(s){
-    if(!s) return '<div class="mt">Operatore non trovato.</div>';
+    if(!s) return '<div class="mt">'+esc(t('staffcard_not_found'))+'</div>';
     var vs = LV().filter(function(v){ return v.staffId===s.id; })
                  .sort(function(a,b){ return String(b.date).localeCompare(String(a.date)); });
     var mth = ymOf(today());
@@ -1354,47 +1709,47 @@ SC.staffCard = {
       '</div>'+
 
       '<div class="stats">'+
-        '<div class="stx"><b>'+vs.length+'</b><i>Visite<br>totali</i></div>'+
-        '<div class="stx"><b class="a">'+vm+'</b><i>Visite<br>questo mese</i></div>'+
-        '<div class="stx"><b>'+pm+'</b><i>Impegni<br>questo mese</i></div>'+
+        '<div class="stx"><b>'+vs.length+'</b><i>'+t('staffcard_total_visits')+'</i></div>'+
+        '<div class="stx"><b class="a">'+vm+'</b><i>'+t('staffcard_month_visits')+'</i></div>'+
+        '<div class="stx"><b>'+pm+'</b><i>'+t('staffcard_month_tasks')+'</i></div>'+
       '</div>'+
 
-      (srv.length ? '<div class="g"><div class="gt">Servizi eseguiti</div><div class="list">'+
+      (srv.length ? '<div class="g"><div class="gt">'+esc(t('staffcard_services_gt'))+'</div><div class="list">'+
         srv.map(function(x){
           return rowPlain('<div class="rm"><div class="rt">'+esc(x.n)+'</div></div><span class="rv">'+x.c+'</span>');
         }).join('')+'</div></div>' : '')+
 
-      '<div class="g"><div class="gt">Visite svolte ('+vs.length+')</div><div class="list">'+
+      '<div class="g"><div class="gt">'+esc(t('staffcard_visits_gt'))+vs.length+')</div><div class="list">'+
         (vs.length ? vs.slice(0,25).map(function(v){
             var c = cli(v.clientId);
-            return rowPlain('<div class="rm"><div class="rt">'+esc(c?c.name:'Cliente eliminato')+'</div>'+
+            return rowPlain('<div class="rm"><div class="rt">'+esc(c?c.name:t('staffcard_client_deleted'))+'</div>'+
               '<div class="rs">'+esc(v.service)+' · '+fmtD(v.date)+'</div></div>'+(c?CHEV:''),
               c?'data-a="open-client" data-id="'+c.id+'"':'', c?'tap':'');
           }).join('')
-         : rowPlain('<div class="rm"><div class="rs">Nessuna visita ancora assegnata.</div></div>'))+
-      '</div>'+(vs.length>25 ? '<div class="gf">Mostrate le 25 più recenti.</div>' : '')+'</div>'+
+         : rowPlain('<div class="rm"><div class="rs">'+esc(t('staffcard_no_visits'))+'</div></div>'))+
+      '</div>'+(vs.length>25 ? '<div class="gf">'+esc(t('staffcard_more_recent_gf'))+'</div>' : '')+'</div>'+
 
       '<div class="g"><div class="list">'+
-        rowPlain('<div class="rt">Rimuovi dallo staff</div>','data-a="del-stf" data-id="'+s.id+'"','tap ctr dg')+
-      '</div><div class="gf">Le visite e gli impegni già registrati restano, perdono solo il collegamento.</div></div>';
+        rowPlain('<div class="rt">'+esc(t('staffcard_remove'))+'</div>','data-a="del-stf" data-id="'+s.id+'"','tap ctr dg')+
+      '</div><div class="gf">'+esc(t('staffcard_remove_gf'))+'</div></div>';
   }
 };
 
 /* Listino servizi, sotto-schermata delle Impostazioni. */
 SC.services = {
-  title:'Listino servizi',
-  right:function(){ return '<button class="nb" data-a="new-svc">Nuovo</button>'; },
+  title:function(){ return t('services_title'); },
+  right:function(){ return '<button class="nb" data-a="new-svc">'+esc(t('services_new'))+'</button>'; },
   body:function(){
     var l = LS();
-    if(!l.length) return '<div class="mt"><b>\u2702\uFE0F</b>Nessun servizio a listino.'+
-      '<div style="margin-top:16px"><button class="btn p s" data-a="new-svc">Aggiungi servizio</button></div></div>';
+    if(!l.length) return '<div class="mt"><b>\u2702\uFE0F</b>'+esc(t('services_empty'))+
+      '<div style="margin-top:16px"><button class="btn p s" data-a="new-svc">'+esc(t('services_add'))+'</button></div></div>';
     return '<div class="g"><div class="list">'+l.map(function(s){
       return rowSwipe('del-svc', s.id,
         '<div class="rm"><div class="rt">'+esc(s.name)+'</div>'+
         '<div class="rs">'+(s.duration?s.duration+' min':'')+(s.category?' · '+esc(s.category):'')+'</div></div>'+
         '<span class="rv">€'+esc(s.price)+'</span>'+CHEV,
         'data-a="edit-svc" data-id="'+s.id+'"');
-    }).join('')+'</div><div class="gf">Scorri verso sinistra per eliminare. Tocca per modificare.</div></div>';
+    }).join('')+'</div><div class="gf">'+esc(t('services_gf'))+'</div></div>';
   }
 };
 
@@ -1403,9 +1758,9 @@ SC.services = {
 function sheet(title, body, mount, saveLabel){
   var r = document.getElementById('sh');
   r.innerHTML = '<div class="bd" data-a="close"></div><div class="sheet"><div class="gb"></div>'+
-    '<div class="sh-h"><button class="nb" data-a="close">'+(saveLabel===null?'Chiudi':'Annulla')+'</button>'+
+    '<div class="sh-h"><button class="nb" data-a="close">'+esc(saveLabel===null?t('sheet_close'):t('sheet_cancel'))+'</button>'+
     '<div class="sh-t">'+esc(title)+'</div>'+
-    (saveLabel===null ? '<span class="nb-sp"></span>' : '<button class="nb b" id="sv">'+esc(saveLabel||'Salva')+'</button>')+
+    (saveLabel===null ? '<span class="nb-sp"></span>' : '<button class="nb b" id="sv">'+esc(saveLabel||t('sheet_save'))+'</button>')+
     '</div><div class="sh-b">'+body+'</div></div>';
   requestAnimationFrame(function(){ r.classList.add('on'); });
   if(mount) mount();
@@ -1436,7 +1791,7 @@ function opsHtml(sel){
       '<span class="dot-st" style="background:'+s.color+'"></span>'+esc(s.name)+'</button>';
   }).join('') +
   '<button class="op-c'+(sel?'':' on')+'" data-a="op-pick" data-id="">'+
-  '<span class="dot-st" style="background:var(--card-3)"></span>Nessuno</button>';
+  '<span class="dot-st" style="background:var(--card-3)"></span>'+esc(t('ops_none'))+'</button>';
 }
 
 /* Selettore cliente con ricerca: sostituisce il menu a tendina, impraticabile
@@ -1450,11 +1805,11 @@ function pkInner(opzionale){
   var c = pkSel ? cli(pkSel) : null;
   if(c){
     return '<div class="pk-chip"><span class="nm">'+esc(c.name)+'</span>'+
-           '<button data-a="pk-clear">Cambia</button></div>';
+           '<button data-a="pk-clear">'+esc(t('pk_change'))+'</button></div>';
   }
-  return '<input id="pk-q" type="search" placeholder="Cerca cliente per nome o telefono" autocapitalize="words">'+
+  return '<input id="pk-q" type="search" placeholder="'+esc(t('pk_search_ph'))+'" autocapitalize="words">'+
          '<div class="pk-list" id="pk-list">'+pkItems('')+'</div>'+
-         (opzionale ? '<div class="pk-hint">Facoltativo: lascia vuoto per un impegno non legato a un cliente.</div>' : '');
+         (opzionale ? '<div class="pk-hint">'+esc(t('pk_hint_optional'))+'</div>' : '');
 }
 
 /* Risultati della ricerca. A campo vuoto propone i clienti visti di recente,
@@ -1476,12 +1831,12 @@ function pkItems(q){
     }).slice(0,6);
   }
   if(!l.length){
-    return '<div class="pk-none">'+(LC().length ? 'Nessun cliente trovato.' : 'Nessun cliente in archivio.')+'</div>';
+    return '<div class="pk-none">'+esc(LC().length ? t('pk_no_results') : t('pk_no_clients'))+'</div>';
   }
   return l.map(function(c){
     var lv = lastVis(c.id);
     return '<div class="pk-it" data-a="pk-pick" data-id="'+c.id+'">'+esc(c.name)+
-      (lv ? '<div class="sub">ultima visita '+fmtD(lv.date)+'</div>' : (c.phone?'<div class="sub">'+esc(c.phone)+'</div>':''))+
+      (lv ? '<div class="sub">'+esc(t('pk_last_visit_prefix'))+fmtD(lv.date)+'</div>' : (c.phone?'<div class="sub">'+esc(c.phone)+'</div>':''))+
       '</div>';
   }).join('');
 }
@@ -1495,17 +1850,17 @@ function pkRefresh(opzionale){
 /* Modulo di creazione o modifica di una scheda cliente. */
 function clientSheet(x){
   var c = x || {name:'',phone:'',email:'',birthday:'',referral:'',notes:'',allergies:''};
-  sheet(x?'Modifica cliente':'Nuovo cliente',
-    '<div class="f"><label>Nome e cognome</label><input id="f-n" value="'+esc(c.name)+'" placeholder="Es. Maria Rossi" autocapitalize="words"></div>'+
-    '<div class="f"><label>Telefono</label><input id="f-p" type="tel" value="'+esc(c.phone)+'" placeholder="333 1234567"></div>'+
-    '<div class="f"><label>Email</label><input id="f-e" type="email" value="'+esc(c.email||'')+'" placeholder="opzionale" autocapitalize="off"></div>'+
-    '<div class="fr"><div class="f"><label>Compleanno</label><input id="f-b" type="date" value="'+esc(c.birthday||'')+'"></div>'+
-    '<div class="f"><label>Conosciuta tramite</label><input id="f-r" value="'+esc(c.referral||'')+'" placeholder="Passaparola…"></div></div>'+
-    '<div class="f"><label>Allergie / attenzioni</label><textarea id="f-a" placeholder="Es. sensibilità all\u2019ammoniaca">'+esc(c.allergies||'')+'</textarea></div>'+
-    '<div class="f"><label>Note</label><textarea id="f-no" placeholder="Preferenze, tipo di capello…">'+esc(c.notes||'')+'</textarea></div>',
+  sheet(x?t('client_form_title_edit'):t('client_form_title_new'),
+    '<div class="f"><label>'+esc(t('client_form_name'))+'</label><input id="f-n" value="'+esc(c.name)+'" placeholder="'+esc(t('client_form_name_ph'))+'" autocapitalize="words"></div>'+
+    '<div class="f"><label>'+esc(t('client_form_phone'))+'</label><input id="f-p" type="tel" value="'+esc(c.phone)+'" placeholder="'+esc(t('client_form_phone_ph'))+'"></div>'+
+    '<div class="f"><label>'+esc(t('client_form_email'))+'</label><input id="f-e" type="email" value="'+esc(c.email||'')+'" placeholder="'+esc(t('client_form_email_ph'))+'" autocapitalize="off"></div>'+
+    '<div class="fr"><div class="f"><label>'+esc(t('client_form_birthday'))+'</label><input id="f-b" type="date" value="'+esc(c.birthday||'')+'"></div>'+
+    '<div class="f"><label>'+esc(t('client_form_referral'))+'</label><input id="f-r" value="'+esc(c.referral||'')+'" placeholder="'+esc(t('client_form_referral_ph'))+'"></div></div>'+
+    '<div class="f"><label>'+esc(t('client_form_allergies'))+'</label><textarea id="f-a" placeholder="'+esc(t('client_form_allergies_ph'))+'">'+esc(c.allergies||'')+'</textarea></div>'+
+    '<div class="f"><label>'+esc(t('client_form_notes'))+'</label><textarea id="f-no" placeholder="'+esc(t('client_form_notes_ph'))+'">'+esc(c.notes||'')+'</textarea></div>',
   function(){
     onSave(function(){
-      var n = V('f-n'); if(!n){ toast('Inserisci almeno il nome.'); return; }
+      var n = V('f-n'); if(!n){ toast(t('toast_name_required')); return; }
       var d = {name:n, phone:V('f-p'), email:V('f-e'), birthday:V('f-b'), referral:V('f-r'),
                notes:V('f-no'), allergies:V('f-a'), updatedAt:Date.now()};
       if(x) Object.assign(x,d); else state.clients.push(Object.assign({id:uid(),createdAt:Date.now()},d));
@@ -1519,33 +1874,33 @@ function clientSheet(x){
 function visitSheet(x, pre){
   var v = x || {clientId:pre||'', date:today(), service:'', stylist:'', color:'', note:'', brand:'', shade:'', oxy:'', posa:''};
   var cs = LC().sort(function(a,b){ return String(a.name).localeCompare(String(b.name),'it'); });
-  if(!cs.length){ toast('Aggiungi prima un cliente.'); return; }
+  if(!cs.length){ toast(t('visit_add_client_first')); return; }
   pkSel = pre || v.clientId || '';
   vStaffSel = v.staffId || '';
-  var so = '<option value="">— seleziona —</option>'+LS().map(function(s){
+  var so = '<option value="">'+esc(t('visit_select_option'))+'</option>'+LS().map(function(s){
     return '<option value="'+esc(s.name)+'" '+(v.service===s.name?'selected':'')+'>'+esc(s.name)+'</option>'; }).join('');
-  sheet(x?'Modifica visita':'Nuova visita',
-    '<div class="f"><label>Cliente</label>'+
+  sheet(x?t('visit_form_title_edit'):t('visit_form_title_new'),
+    '<div class="f"><label>'+esc(t('visit_form_client'))+'</label>'+
       (pre ? '<div class="pk-chip"><span class="nm">'+esc((cli(pre)||{}).name||'')+'</span></div>'
            : '<div id="pk-box">'+pkInner(false)+'</div>')+
     '</div>'+
-    '<div class="f"><label>Data</label><input id="f-d" type="date" value="'+esc(v.date)+'"></div>'+
-    '<div class="f"><label>Servizio</label><select id="f-s">'+so+'</select></div>'+
+    '<div class="f"><label>'+esc(t('visit_form_date'))+'</label><input id="f-d" type="date" value="'+esc(v.date)+'"></div>'+
+    '<div class="f"><label>'+esc(t('visit_form_service'))+'</label><select id="f-s">'+so+'</select></div>'+
     (LT().length
-      ? '<div class="f"><label>Chi taglia i capelli?</label><div class="ops" id="v-ops">'+opsHtml(vStaffSel)+'</div></div>'
-      : '<div class="f"><label>Chi taglia i capelli?</label><input id="f-st" value="'+esc(v.stylist||'')+'" placeholder="Nome di chi ha lavorato" autocapitalize="words">'+
-        '<div class="pk-hint">Aggiungi lo staff dalle Impostazioni per scegliere con un tocco.</div></div>')+
-    '<div class="f"><label>Colore usato</label><input id="f-co" value="'+esc(v.color||'')+'" placeholder="Es. biondo cenere, rosso rame…"></div>'+
-    '<div class="fr"><div class="f"><label>Marca</label><input id="f-br" value="'+esc(v.brand||'')+'" placeholder="Es. Wella"></div>'+
-    '<div class="f"><label>Codice tinta</label><input id="f-sh" value="'+esc(v.shade||'')+'" placeholder="Es. 7.3"></div></div>'+
-    '<div class="fr"><div class="f"><label>Ossigeno (vol)</label><input id="f-ox" inputmode="numeric" value="'+esc(v.oxy||'')+'" placeholder="20"></div>'+
-    '<div class="f"><label>Posa (min)</label><input id="f-po" inputmode="numeric" value="'+esc(v.posa||'')+'" placeholder="35"></div></div>'+
-    '<div class="f"><label>Nota</label><textarea id="f-nt" placeholder="Dettagli particolari…">'+esc(v.note||'')+'</textarea></div>',
+      ? '<div class="f"><label>'+esc(t('visit_form_who'))+'</label><div class="ops" id="v-ops">'+opsHtml(vStaffSel)+'</div></div>'
+      : '<div class="f"><label>'+esc(t('visit_form_who'))+'</label><input id="f-st" value="'+esc(v.stylist||'')+'" placeholder="'+esc(t('visit_form_who_ph'))+'" autocapitalize="words">'+
+        '<div class="pk-hint">'+esc(t('visit_form_who_hint'))+'</div></div>')+
+    '<div class="f"><label>'+esc(t('visit_form_color'))+'</label><input id="f-co" value="'+esc(v.color||'')+'" placeholder="'+esc(t('visit_form_color_ph'))+'"></div>'+
+    '<div class="fr"><div class="f"><label>'+esc(t('visit_form_brand'))+'</label><input id="f-br" value="'+esc(v.brand||'')+'" placeholder="'+esc(t('visit_form_brand_ph'))+'"></div>'+
+    '<div class="f"><label>'+esc(t('visit_form_shade'))+'</label><input id="f-sh" value="'+esc(v.shade||'')+'" placeholder="'+esc(t('visit_form_shade_ph'))+'"></div></div>'+
+    '<div class="fr"><div class="f"><label>'+esc(t('visit_form_oxy'))+'</label><input id="f-ox" inputmode="numeric" value="'+esc(v.oxy||'')+'" placeholder="20"></div>'+
+    '<div class="f"><label>'+esc(t('visit_form_posa'))+'</label><input id="f-po" inputmode="numeric" value="'+esc(v.posa||'')+'" placeholder="35"></div></div>'+
+    '<div class="f"><label>'+esc(t('visit_form_note'))+'</label><textarea id="f-nt" placeholder="'+esc(t('visit_form_note_ph'))+'">'+esc(v.note||'')+'</textarea></div>',
   function(){
     onSave(function(){
       var id = pre || pkSel, s = V('f-s');
-      if(!id){ toast('Seleziona un cliente.'); return; }
-      if(!s){ toast('Seleziona un servizio.'); return; }
+      if(!id){ toast(t('toast_select_client')); return; }
+      if(!s){ toast(t('toast_select_service')); return; }
       var d = {clientId:id, date:V('f-d')||today(), service:s,
                staffId:vStaffSel, stylist:(LT().length ? '' : V('f-st')), color:V('f-co'),
                note:V('f-nt'), brand:V('f-br'), shade:V('f-sh'), oxy:V('f-ox'), posa:V('f-po'), updatedAt:Date.now()};
@@ -1560,28 +1915,28 @@ function postSheet(x){
   var p = x || {date:state.pickDate||today(), text:'', clientId:''};
   pkSel = p.clientId || '';
   pStaffSel = p.staffId || '';
-  sheet(x?'Modifica appuntamento':'Nuovo appuntamento',
+  sheet(x?t('post_form_title_edit'):t('post_form_title_new'),
     '<div class="fr">'+
-      '<div class="f"><label>Giornata</label><input id="p-d" type="date" value="'+esc(p.date)+'"></div>'+
-      '<div class="f"><label>Ora (facoltativa)</label><input id="p-h" type="time" value="'+esc(p.time||'')+'"></div>'+
+      '<div class="f"><label>'+esc(t('post_form_day'))+'</label><input id="p-d" type="date" value="'+esc(p.date)+'"></div>'+
+      '<div class="f"><label>'+esc(t('post_form_time'))+'</label><input id="p-h" type="time" value="'+esc(p.time||'')+'"></div>'+
     '</div>'+
-    '<div class="f"><label>Impegno</label><textarea id="p-t" style="min-height:110px" placeholder="Es. Colore e piega. Oppure: ordinare tinte, chiamare fornitore…">'+esc(p.text)+'</textarea></div>'+
-    (LT().length ? '<div class="f"><label>Chi se ne occupa</label><div class="ops" id="p-ops">'+opsHtml()+'</div></div>' : '')+
-    '<div class="f"><label>Collega a un cliente</label><div id="pk-box" data-opt="1">'+pkInner(true)+'</div></div>'+
-    (x && x.history && x.history.length ? '<div class="gf" style="margin:0">Appuntamento modificato '+x.history.length+(x.history.length===1?' volta':' volte')+'. La cronologia resta salvata.</div>' : ''),
+    '<div class="f"><label>'+esc(t('post_form_task'))+'</label><textarea id="p-t" style="min-height:110px" placeholder="'+esc(t('post_form_task_ph'))+'">'+esc(p.text)+'</textarea></div>'+
+    (LT().length ? '<div class="f"><label>'+esc(t('post_form_who'))+'</label><div class="ops" id="p-ops">'+opsHtml()+'</div></div>' : '')+
+    '<div class="f"><label>'+esc(t('post_form_link_client'))+'</label><div id="pk-box" data-opt="1">'+pkInner(true)+'</div></div>'+
+    (x && x.history && x.history.length ? '<div class="gf" style="margin:0">'+esc(t('post_form_edited_one'))+x.history.length+esc(x.history.length===1?t('post_form_edited_one_suffix'):t('post_form_edited_many_suffix'))+'</div>' : ''),
   function(){
     onSave(function(){
-      var t = V('p-t');
-      if(!t){ toast('Scrivi il testo dell\u2019appuntamento.'); return; }
+      var txt = V('p-t');
+      if(!txt){ toast(t('toast_write_appointment')); return; }
       if(x){
-        if(t !== x.text){
+        if(txt !== x.text){
           x.history = x.history || [];
           x.history.push({text:x.text, at:x.updatedAt || x.createdAt});
         }
-        x.text = t; x.date = V('p-d')||x.date; x.time = V('p-h');
+        x.text = txt; x.date = V('p-d')||x.date; x.time = V('p-h');
         x.clientId = pkSel; x.staffId = pStaffSel; x.updatedAt = Date.now();
       } else {
-        state.posts.push({id:uid(), date:V('p-d')||today(), time:V('p-h'), text:t,
+        state.posts.push({id:uid(), date:V('p-d')||today(), time:V('p-h'), text:txt,
                           clientId:pkSel, staffId:pStaffSel,
                           createdAt:Date.now(), updatedAt:Date.now(), history:[]});
       }
@@ -1595,9 +1950,9 @@ function postSheet(x){
 function histSheet(p){
   if(!p) return;
   var h = (p.history||[]).slice().reverse();
-  sheet('Cronologia modifiche',
+  sheet(t('hist_title'),
     '<div class="list">'+
-      rowPlain('<div class="rm"><div class="rs" style="color:var(--accent-2)">Versione attuale</div>'+
+      rowPlain('<div class="rm"><div class="rs" style="color:var(--accent-2)">'+esc(t('hist_current'))+'</div>'+
         '<div class="rt" style="white-space:pre-wrap">'+esc(p.text)+'</div>'+
         '<div class="rs">'+fmtTs(p.updatedAt||p.createdAt)+'</div></div>')+
       h.map(function(v){
@@ -1633,16 +1988,16 @@ function staffSheet(x){
     s.color = libero ? libero.c : '#D24C93';
   }
   stfColorSel = s.color;
-  sheet(x?'Modifica membro':'Nuovo membro',
-    '<div class="f"><label>Nome</label><input id="t-n" value="'+esc(s.name)+'" placeholder="Es. Francesca" autocapitalize="words"></div>'+
-    '<div class="f"><label>Ruolo (facoltativo)</label><input id="t-r" value="'+esc(s.role||'')+'" placeholder="Es. colorista"></div>'+
-    '<div class="f"><label>Colore nell\u2019agenda</label>'+paletteHtml()+'</div>',
+  sheet(x?t('staff_form_title_edit'):t('staff_form_title_new'),
+    '<div class="f"><label>'+esc(t('staff_form_name'))+'</label><input id="t-n" value="'+esc(s.name)+'" placeholder="'+esc(t('staff_form_name_ph'))+'" autocapitalize="words"></div>'+
+    '<div class="f"><label>'+esc(t('staff_form_role'))+'</label><input id="t-r" value="'+esc(s.role||'')+'" placeholder="'+esc(t('staff_form_role_ph'))+'"></div>'+
+    '<div class="f"><label>'+esc(t('staff_form_color'))+'</label>'+paletteHtml()+'</div>',
   function(){
     document.querySelectorAll('#pal .pal-c').forEach(function(el){
       el.style.background = el.dataset.id;
     });
     onSave(function(){
-      var n = V('t-n'); if(!n){ toast('Inserisci il nome.'); return; }
+      var n = V('t-n'); if(!n){ toast(t('toast_enter_name')); return; }
       var d = {name:n, role:V('t-r'), color:stfColorSel, updatedAt:Date.now()};
       if(x) Object.assign(x,d); else state.staff.push(Object.assign({id:uid(),createdAt:Date.now()},d));
       sk('staff',state.staff); closeSheet(); render();
@@ -1654,14 +2009,14 @@ function staffSheet(x){
 /* Modulo di un servizio del listino. */
 function svcSheet(x){
   var s = x || {name:'',category:'',duration:30,price:''};
-  sheet(x?'Modifica servizio':'Nuovo servizio',
-    '<div class="f"><label>Nome servizio</label><input id="s-n" value="'+esc(s.name)+'" placeholder="Es. Balayage" autocapitalize="words"></div>'+
-    '<div class="f"><label>Categoria</label><input id="s-c" value="'+esc(s.category||'')+'" placeholder="Es. Colore"></div>'+
-    '<div class="fr"><div class="f"><label>Durata (min)</label><input id="s-d" inputmode="numeric" value="'+esc(s.duration||'')+'"></div>'+
-    '<div class="f"><label>Prezzo (€)</label><input id="s-p" inputmode="decimal" value="'+esc(s.price||'')+'"></div></div>',
+  sheet(x?t('svc_form_title_edit'):t('svc_form_title_new'),
+    '<div class="f"><label>'+esc(t('svc_form_name'))+'</label><input id="s-n" value="'+esc(s.name)+'" placeholder="'+esc(t('svc_form_name_ph'))+'" autocapitalize="words"></div>'+
+    '<div class="f"><label>'+esc(t('svc_form_category'))+'</label><input id="s-c" value="'+esc(s.category||'')+'" placeholder="'+esc(t('svc_form_category_ph'))+'"></div>'+
+    '<div class="fr"><div class="f"><label>'+esc(t('svc_form_duration'))+'</label><input id="s-d" inputmode="numeric" value="'+esc(s.duration||'')+'"></div>'+
+    '<div class="f"><label>'+esc(t('svc_form_price'))+'</label><input id="s-p" inputmode="decimal" value="'+esc(s.price||'')+'"></div></div>',
   function(){
     onSave(function(){
-      var n = V('s-n'); if(!n){ toast('Inserisci il nome.'); return; }
+      var n = V('s-n'); if(!n){ toast(t('toast_enter_name')); return; }
       var d = {name:n, category:V('s-c'), duration:parseInt(V('s-d'))||0, price:parseFloat(V('s-p'))||0, updatedAt:Date.now()};
       if(x) Object.assign(x,d); else state.services.push(Object.assign({id:uid()},d));
       sk('services',state.services); closeSheet(); render();
@@ -1672,10 +2027,10 @@ function svcSheet(x){
 /* Modulo di modifica di un appunto del diario cliente. */
 function noteSheet(m){
   if(!m) return;
-  sheet('Modifica appunto','<div class="f"><textarea id="n-t" style="min-height:130px">'+esc(m.text)+'</textarea></div>', function(){
+  sheet(t('note_form_title'),'<div class="f"><textarea id="n-t" style="min-height:130px">'+esc(m.text)+'</textarea></div>', function(){
     onSave(function(){
-      var t = V('n-t'); if(!t){ toast('Non può essere vuoto.'); return; }
-      m.text=t; m.edited=true; m.updatedAt=Date.now();
+      var txt = V('n-t'); if(!txt){ toast(t('toast_cannot_be_empty')); return; }
+      m.text=txt; m.edited=true; m.updatedAt=Date.now();
       sk('comments',state.comments); closeSheet(); render();
     });
     document.getElementById('n-t').focus();
@@ -1684,23 +2039,22 @@ function noteSheet(m){
 
 /* Richiesta del codice di accesso: lo verifica sul server prima di memorizzarlo. */
 function pwSheet(err){
-  sheet('Cloud del salone',
-    '<div class="f"><label>Codice di accesso</label><input id="pwf" type="password" autocomplete="current-password" placeholder="Inserisci il codice"></div>'+
+  sheet(t('pw_title'),
+    '<div class="f"><label>'+esc(t('pw_code_label'))+'</label><input id="pwf" type="password" autocomplete="current-password" placeholder="'+esc(t('pw_code_ph'))+'"></div>'+
     '<div style="font-size:14px;color:'+(err?'var(--red)':'var(--text-2)')+';line-height:1.5">'+
-      (err?esc(err):'Con il codice, i dati si sincronizzano fra tutti i dispositivi del salone. '+
-        'Se la sincronizzazione si e\u2019 interrotta, reinserirlo qui ripristina subito il collegamento.')+'</div>',
+      (err?esc(err):esc(t('pw_hint_default')))+'</div>',
   function(){
     var go = function(){
-      var p = V('pwf'); if(!p){ toast('Inserisci il codice.'); return; }
+      var p = V('pwf'); if(!p){ toast(t('toast_enter_code')); return; }
       pw = p;
       api('load').then(function(){
         try{ localStorage.setItem(PX+'pw', p); }catch(e){}
         sSt='idle'; closeSheet(); paintSync(); render();
-        toast('Collegato al cloud.'); syncNow();
+        toast(t('toast_connected')); syncNow();
       }).catch(function(e){
         pw = null; closeSheet();
-        if(String(e.message)==='unauthorized') setTimeout(function(){ pwSheet('Codice non corretto. Riprova.'); }, 430);
-        else { sSt='error'; paintSync(); toast('Cloud non raggiungibile: i dati restano salvati qui.'); }
+        if(String(e.message)==='unauthorized') setTimeout(function(){ pwSheet(t('pw_err_wrong')); }, 430);
+        else { sSt='error'; paintSync(); toast(t('toast_cloud_unreachable')); }
       });
     };
     onSave(go);
@@ -1711,19 +2065,19 @@ function pwSheet(err){
 
 /* Elenco delle copie di riserva presenti sul cloud, con ripristino. */
 function baksSheet(){
-  sheet('Copie di riserva','<div style="color:var(--text-2);font-size:15px;padding:6px 0">Caricamento…</div>', null, null);
+  sheet(t('baks_title'),'<div style="color:var(--text-2);font-size:15px;padding:6px 0">'+esc(t('baks_loading'))+'</div>', null, null);
   api('backups').then(function(res){
     var l = res.backups||[], b = document.querySelector('.sh-b');
     if(!b) return;
     b.innerHTML = l.length
       ? '<div class="list">'+l.map(function(x){
-          return rowPlain('<div class="rm"><div class="rt">'+esc(x.at)+'</div></div><span class="rv">Ripristina</span>',
+          return rowPlain('<div class="rm"><div class="rt">'+esc(x.at)+'</div></div><span class="rv">'+esc(t('baks_restore'))+'</span>',
             'data-a="restore" data-id="'+x.id+'"','tap');
-        }).join('')+'</div><div class="gf">Il ripristino sostituisce i dati sul cloud con quelli della copia scelta.</div>'
-      : '<div style="color:var(--text-2);font-size:15px;padding:6px 0">Nessuna copia ancora. Vengono create automaticamente a ogni salvataggio.</div>';
+        }).join('')+'</div><div class="gf">'+esc(t('baks_gf'))+'</div>'
+      : '<div style="color:var(--text-2);font-size:15px;padding:6px 0">'+esc(t('baks_none'))+'</div>';
   }).catch(function(){
     var b = document.querySelector('.sh-b');
-    if(b) b.innerHTML = '<div style="color:var(--red);font-size:15px;padding:6px 0">Impossibile caricare le copie.</div>';
+    if(b) b.innerHTML = '<div style="color:var(--red);font-size:15px;padding:6px 0">'+esc(t('baks_error'))+'</div>';
   });
 }
 
@@ -1762,28 +2116,28 @@ function mondayOf(iso){
 /* Finestra di scelta: quali giornate mandare in stampa. */
 function printSheet(){
   var da = state.pickDate, a = state.pickDate;
-  sheet('Stampa agenda',
-    '<div class="f"><label>Scelte rapide</label><div class="ops" id="pr-quick">'+
-      '<button class="op-c" data-a="pr-preset" data-id="oggi">Solo questa giornata</button>'+
-      '<button class="op-c" data-a="pr-preset" data-id="settimana">Questa settimana</button>'+
-      '<button class="op-c" data-a="pr-preset" data-id="sette">Prossimi 7 giorni</button>'+
-      '<button class="op-c" data-a="pr-preset" data-id="mese">Tutto il mese</button>'+
+  sheet(t('print_title'),
+    '<div class="f"><label>'+esc(t('print_quick_label'))+'</label><div class="ops" id="pr-quick">'+
+      '<button class="op-c" data-a="pr-preset" data-id="oggi">'+esc(t('print_preset_today'))+'</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="settimana">'+esc(t('print_preset_week'))+'</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="sette">'+esc(t('print_preset_7days'))+'</button>'+
+      '<button class="op-c" data-a="pr-preset" data-id="mese">'+esc(t('print_preset_month'))+'</button>'+
     '</div></div>'+
     '<div class="fr">'+
-      '<div class="f"><label>Dal giorno</label><input id="pr-da" type="date" value="'+esc(da)+'"></div>'+
-      '<div class="f"><label>Al giorno</label><input id="pr-a" type="date" value="'+esc(a)+'"></div>'+
+      '<div class="f"><label>'+esc(t('print_from'))+'</label><input id="pr-da" type="date" value="'+esc(da)+'"></div>'+
+      '<div class="f"><label>'+esc(t('print_to'))+'</label><input id="pr-a" type="date" value="'+esc(a)+'"></div>'+
     '</div>'+
     '<div class="pk-hint" id="pr-info"></div>',
   function(){
     aggiornaInfoStampa();
     onSave(function(){
       var d1 = V('pr-da') || state.pickDate, d2 = V('pr-a') || d1;
-      if(d2 < d1){ var t=d1; d1=d2; d2=t; }
+      if(d2 < d1){ var tmp=d1; d1=d2; d2=tmp; }
       closeSheet();
       setTimeout(function(){ printRange(d1, d2); }, 420);
     });
-    var b = document.getElementById('sv'); if(b) b.textContent = 'Stampa';
-  }, 'Stampa');
+    var b = document.getElementById('sv'); if(b) b.textContent = t('nb_print');
+  }, t('nb_print'));
 }
 
 /* Conta quante giornate e quanti impegni finirebbero in stampa. */
@@ -1791,7 +2145,7 @@ function aggiornaInfoStampa(){
   var el = document.getElementById('pr-info'); if(!el) return;
   var d1 = V('pr-da'), d2 = V('pr-a');
   if(!d1 || !d2){ el.textContent = ''; return; }
-  if(d2 < d1){ var t=d1; d1=d2; d2=t; }
+  if(d2 < d1){ var tmp=d1; d1=d2; d2=tmp; }
   var giorni = 0, impegni = 0, g = d1, guardia = 0;
   while(g <= d2 && guardia++ < 400){
     var n = postsOn(g).length;
@@ -1799,8 +2153,8 @@ function aggiornaInfoStampa(){
     g = addDays(g, 1);
   }
   el.textContent = giorni
-    ? giorni+(giorni===1?' giornata':' giornate')+' con impegni · '+impegni+(impegni===1?' riga':' righe')+' in totale'
-    : 'Nessun impegno nel periodo scelto.';
+    ? giorni+(giorni===1?t('print_day_one'):t('print_day_many'))+t('print_with_appts')+impegni+(impegni===1?t('print_row_one'):t('print_row_many'))+t('print_total_suffix')
+    : t('print_info_none');
 }
 
 /* Genera il documento: una sezione per giornata, ognuna su una pagina nuova. */
@@ -1822,15 +2176,15 @@ function printRange(d1, d2){
       sezioni.push('<section class="pr-day">'+
         '<div class="pr-h"><h1>Salon CRM &mdash; Demo</h1>'+
         '<p class="pr-d">'+esc(cap(fmtDay(g)))+'</p>'+legendPrint(ps)+'</div>'+
-        '<table class="pr-t"><thead><tr><th>Orario</th><th>Tipo di lavoro</th><th>Staff</th></tr></thead>'+
+        '<table class="pr-t"><thead><tr><th>'+esc(t('tbl_time'))+'</th><th>'+esc(t('tbl_type'))+'</th><th>'+esc(t('tbl_staff'))+'</th></tr></thead>'+
         '<tbody>'+righe+'</tbody></table></section>');
     }
     g = addDays(g, 1);
   }
-  if(!sezioni.length){ toast('Nessun impegno da stampare nel periodo scelto.'); return; }
+  if(!sezioni.length){ toast(t('toast_print_none')); return; }
   document.getElementById('printable').innerHTML = sezioni.join('') +
-    '<div class="pr-f">'+giornate+(giornate===1?' giornata':' giornate')+' · '+
-    totale+(totale===1?' impegno':' impegni')+' · stampato il '+new Date().toLocaleString('it-IT')+'</div>';
+    '<div class="pr-f">'+giornate+(giornate===1?t('print_day_one'):t('print_day_many'))+' · '+
+    totale+esc(totale===1?t('print_footer_item_one'):t('print_footer_item_many'))+t('print_footer_printed')+new Date().toLocaleString(loc())+'</div>';
   setTimeout(function(){ window.print(); }, 60);
 }
 
@@ -1853,14 +2207,14 @@ function snapDaily(){
 function snapRestore(){
   try{
     var r = localStorage.getItem(PX+'snap');
-    if(!r){ toast('Nessuna copia locale.'); return; }
+    if(!r){ toast(t('toast_no_local_backup')); return; }
     var s = JSON.parse(r);
-    if(!confirm('Ripristinare la copia locale del '+(s.date||'?')+'? Sostituirà i dati su questo dispositivo.')) return;
+    if(!confirm(t('confirm_restore_local_prefix')+(s.date||'?')+t('confirm_restore_local_suffix'))) return;
     state.clients=s.clients||[]; state.visits=s.visits||[]; state.services=s.services||state.services;
     state.comments=s.comments||[]; state.posts=s.posts||[]; state.staff=s.staff||[];
     state.notepad=s.notepad||state.notepad;
-    persistAll(); state.stack=[]; render(); toast('Copia locale ripristinata.');
-  }catch(e){ toast('Copia non leggibile.'); }
+    persistAll(); state.stack=[]; render(); toast(t('toast_local_restored'));
+  }catch(e){ toast(t('toast_backup_unreadable')); }
 }
 /* Scarica l'intero archivio come file .json. */
 function exportBak(){
@@ -1869,7 +2223,7 @@ function exportBak(){
   a.href=u; a.download='saloncrm-backup-'+today()+'.json';
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u);
   localStorage.setItem(PX+'lastBak', String(Date.now()));
-  toast('Backup scaricato.'); render();
+  toast(t('toast_backup_downloaded')); render();
 }
 /* Ripristina l'archivio da un file .json previa conferma. */
 function importBak(file){
@@ -1877,13 +2231,13 @@ function importBak(file){
   r.onload = function(e){
     try{
       var d = JSON.parse(e.target.result);
-      if(!Array.isArray(d.clients)){ toast('File non valido.'); return; }
-      if(!confirm('Il backup sostituirà i dati su questo dispositivo. Continuare?')) return;
+      if(!Array.isArray(d.clients)){ toast(t('toast_invalid_file')); return; }
+      if(!confirm(t('confirm_restore_file'))) return;
       state.clients=d.clients||[]; state.visits=d.visits||d.appointments||[];
       state.services=d.services||state.services; state.comments=d.comments||[];
       state.posts=d.posts||[]; state.staff=d.staff||[]; state.notepad=d.notepad||state.notepad;
-      persistAll(); state.stack=[]; render(); toast('Backup ripristinato.');
-    }catch(x){ toast('Impossibile leggere il file.'); }
+      persistAll(); state.stack=[]; render(); toast(t('toast_backup_restored'));
+    }catch(x){ toast(t('toast_file_unreadable')); }
   };
   r.readAsText(file);
 }
@@ -1925,19 +2279,19 @@ document.addEventListener('click', function(e){
   else if(a==='del-post'){
     var pp = state.posts.filter(function(x){ return x.id===id; })[0];
     if(pp){ pp.deleted=true; pp.updatedAt=Date.now(); }
-    sk('posts',state.posts); render(); toast('Appuntamento eliminato.');
+    sk('posts',state.posts); render(); toast(t('toast_appt_deleted'));
   }
 
   else if(a==='new-client') clientSheet(null);
   else if(a==='edit-client') clientSheet(cli(id));
   else if(a==='open-client') push('client', id);
   else if(a==='del-client'){
-    if(confirm('Eliminare questa scheda cliente?')){
+    if(confirm(t('confirm_delete_client'))){
       var cc = state.clients.filter(function(x){ return x.id===id; })[0];
       if(cc){ cc.deleted=true; cc.updatedAt=Date.now(); }
       sk('clients',state.clients);
       if(cur().view==='client') pop(); else render();
-      toast('Cliente eliminato.');
+      toast(t('toast_client_deleted'));
     }
   }
   else if(a==='wa'){
@@ -1954,13 +2308,13 @@ document.addEventListener('click', function(e){
   else if(a==='del-visit'){
     var v2 = state.visits.filter(function(x){ return x.id===id; })[0];
     if(v2){ v2.deleted=true; v2.updatedAt=Date.now(); }
-    sk('visits',state.visits); render(); toast('Visita eliminata.');
+    sk('visits',state.visits); render(); toast(t('toast_visit_deleted'));
   }
 
   else if(a==='add-note'){
-    var ta = document.getElementById('nc'), t = ta?ta.value.trim():'';
-    if(!t){ toast('Scrivi prima l\u2019appunto.'); return; }
-    state.comments.push({id:uid(), clientId:id, text:t, createdAt:Date.now(), updatedAt:Date.now()});
+    var ta = document.getElementById('nc'), noteTxt = ta?ta.value.trim():'';
+    if(!noteTxt){ toast(t('toast_write_note_first')); return; }
+    state.comments.push({id:uid(), clientId:id, text:noteTxt, createdAt:Date.now(), updatedAt:Date.now()});
     sk('comments',state.comments); render();
   }
   else if(a==='edit-note') noteSheet(state.comments.filter(function(m){ return m.id===id; })[0]);
@@ -1976,12 +2330,12 @@ document.addEventListener('click', function(e){
   else if(a==='new-stf') staffSheet(null);
   else if(a==='edit-stf') staffSheet(stf(id));
   else if(a==='del-stf'){
-    if(confirm('Rimuovere questo operatore? Visite e impegni gia\u2019 registrati restano.')){
+    if(confirm(t('confirm_remove_staff'))){
       var t2 = state.staff.filter(function(x){ return x.id===id; })[0];
       if(t2){ t2.deleted=true; t2.updatedAt=Date.now(); }
       sk('staff',state.staff);
       if(cur().view==='staffCard') pop(); else render();
-      toast('Operatore rimosso.');
+      toast(t('toast_staff_removed'));
     }
   }
   else if(a==='pal-pick'){
@@ -2017,17 +2371,17 @@ document.addEventListener('click', function(e){
   else if(a==='del-svc'){
     var s2 = state.services.filter(function(x){ return x.id===id; })[0];
     if(s2){ s2.deleted=true; s2.updatedAt=Date.now(); }
-    sk('services',state.services); render(); toast('Servizio eliminato.');
+    sk('services',state.services); render(); toast(t('toast_service_deleted'));
   }
 
   else if(a==='cloud-in') pwSheet();
   else if(a==='cloud-out'){
-    if(confirm('Scollegare questo dispositivo? I dati restano salvati qui.')){ dropCloud(); render(); toast('Dispositivo scollegato.'); }
+    if(confirm(t('confirm_disconnect'))){ dropCloud(); render(); toast(t('toast_device_disconnected')); }
   }
-  else if(a==='sync'){ syncNow(); toast('Sincronizzazione avviata…'); }
+  else if(a==='sync'){ syncNow(); toast(t('toast_sync_started')); }
   else if(a==='baks') baksSheet();
   else if(a==='restore'){
-    if(confirm('Ripristinare questa copia? Sostituirà i dati sul cloud.')){
+    if(confirm(t('confirm_restore_cloud'))){
       api('restore',{backupId:id}).then(function(){
         closeSheet();
         return api('load').then(function(b){
@@ -2038,14 +2392,15 @@ document.addEventListener('click', function(e){
             if(b.data.notepad) state.notepad=b.data.notepad;
             persistAll();
           }
-          render(); toast('Copia ripristinata.');
+          render(); toast(t('toast_cloud_restored'));
         });
-      }).catch(function(){ toast('Ripristino non riuscito.'); });
+      }).catch(function(){ toast(t('toast_restore_failed')); });
     }
   }
   else if(a==='export') exportBak();
   else if(a==='import') document.getElementById('rf').click();
   else if(a==='snap') snapRestore();
+  else if(a==='set-lang') setLang(id);
 });
 
 /* Digitazione: ricerche (ridisegno conservando il cursore) e blocco note (salvataggio ritardato). */
@@ -2238,7 +2593,7 @@ document.getElementById('sc').addEventListener('scroll', onScroll, {passive:true
         setTimeout(function(){ p.classList.remove('on'); p.style.height='0px'; }, 320);
       });
     } else {
-      if(h>42 && !cloudOn()) toast('Cloud non collegato: vedi Impostazioni.');
+      if(h>42 && !cloudOn()) toast(t('toast_cloud_settings_hint'));
       p.style.height='0px';
     }
     st=null; pl=false;
@@ -2412,7 +2767,7 @@ function demoChrome(){
 
   var pill = document.createElement('div');
   pill.id = 'demo-pill';
-  pill.innerHTML = '<span>DEMO</span><button type="button" id="demo-rst" title="Reimposta i dati dimostrativi" aria-label="Reimposta i dati dimostrativi">&#8635;</button>';
+  pill.innerHTML = '<span>DEMO</span><button type="button" id="demo-rst" title="'+esc(t('demo_reset_title'))+'" aria-label="'+esc(t('demo_reset_title'))+'">&#8635;</button>';
   document.body.appendChild(pill);
   document.getElementById('demo-rst').addEventListener('click', demoReset);
 
@@ -2421,10 +2776,10 @@ function demoChrome(){
   ov.id = 'demo-intro';
   ov.innerHTML =
     '<div class="box" role="dialog" aria-modal="true" aria-labelledby="demo-h">' +
-      '<h2 id="demo-h">Versione dimostrativa</h2>' +
-      '<p>Questo è il registro clienti di un parrucchiere, costruito su commissione e qui riproposto con <strong>dati completamente inventati</strong>. Nessuna persona reale compare in questa pagina.</p>' +
-      '<p>Puoi aggiungere, modificare ed eliminare liberamente: tutto resta nel tuo browser e si azzera con « Reimposta ».</p>' +
-      '<button class="go" type="button" id="demo-go">Entra nella demo</button>' +
+      '<h2 id="demo-h">'+esc(t('demo_title'))+'</h2>' +
+      '<p>'+t('demo_p1')+'</p>' +
+      '<p>'+esc(t('demo_p2'))+'</p>' +
+      '<button class="go" type="button" id="demo-go">'+esc(t('demo_go'))+'</button>' +
     '</div>';
   document.body.appendChild(ov);
   document.getElementById('demo-go').addEventListener('click', function(){
@@ -2439,6 +2794,7 @@ demoSeed();
    Carica l'archivio locale, prepara il listino al primo uso, congela la copia
    del giorno, disegna l'app e infine sincronizza (o chiede il codice). */
 (function(){
+  document.documentElement.lang = LANG;
   state.clients  = lk('clients',[]);
   state.visits   = lk('visits',[]);
   state.comments = lk('comments',[]);
