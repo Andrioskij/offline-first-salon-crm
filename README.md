@@ -2,7 +2,7 @@
 
 A client register and appointment book built on commission for a hair salon, and used daily by its owner. It runs as an installable PWA on a phone, works with no connection at all, and syncs across devices through a serverless function.
 
-**[▶ Live demo](https://offline-first-salon-crm.netlify.app/)** — seeded with entirely fictional data. **[Screenshots](#screenshots)**
+**[▶ Live demo](https://offline-first-salon-crm.netlify.app)** — seeded with entirely fictional data. **[Screenshots](#screenshots)**
 
 > This repository is a rebranded, demo-seeded copy of a delivered project. The client's branding and every real client record have been removed: all names, phone numbers and appointments you see are invented.
 
@@ -22,6 +22,7 @@ The brief was narrow: it had to work on one phone, in a basement with poor recep
 - **Dashboard** — activity at a glance
 - **Printable day sheets** — the salon still wants paper at the front desk
 - **Backup and restore** — JSON export, plus rotating server-side backups
+- **Italian and English interface** — switchable from Settings, remembered per device
 
 ## How it is built
 
@@ -82,7 +83,7 @@ APP_PASSWORD
 
 ## Notes and limitations
 
-- The UI ships in Italian and English (switchable in Settings); it was written for one salon, not built as a multi-locale product.
+- The interface is translated into Italian and English, but the default service catalogue and the demo's sample records stay in Italian. The application was built for one salon, then translated — it was never localised for an international market.
 - A shared passphrase is the right amount of security for one owner and one device. It would not be for a multi-tenant product.
 - Google Drive as a datastore is a deliberate trade: zero running cost and the owner keeps her own data, at the price of no queries and no concurrent writers.
 
